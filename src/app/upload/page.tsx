@@ -1,6 +1,71 @@
-import Link from "next/link";
+"use client";
+
+import { useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { processBatch } from "@/core/pipeline";
 
 export default function UploadPage() {
+  const router = useRouter();
+  const [files, setFiles] = useState<File[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const selectedFiles = Array.from(e.target.files).filter(
+        (f) =>
+          f.name.endsWith(".csv") ||
+          f.name.endsWith(".xlsx") ||
+          f.name.endsWith(".xls")
+      );
+      setFiles((prev) => [...prev, ...selectedFiles]);
+      setError(null);
+    }
+  };
+
+  const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const droppedFiles = Array.from(e.dataTransfer.files).filter(
+      (f) =>
+        f.name.endsWith(".csv") ||
+        f.name.endsWith(".xlsx") ||
+        f.name.endsWith(".xls")
+    );
+    setFiles((prev) => [...prev, ...droppedFiles]);
+    setError(null);
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+  }, []);
+
+  const removeFile = (index: number) => {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleAnalyze = async () => {
+    if (files.length === 0 || isProcessing) return;
+    setIsProcessing(true);
+    setError(null);
+
+    try {
+      const result = await processBatch(files);
+      if (result.transactions.length > 0) {
+        if (result.fileErrors.length > 0) {
+          setError(`${result.fileErrors.length} file(s) could not be processed. Valid files were analyzed successfully.`);
+        } else {
+          router.push("/dashboard");
+        }
+      } else {
+        setError("All files failed to process or no valid transactions were found.");
+        setIsProcessing(false);
+      }
+    } catch {
+      setError("An unexpected error occurred during processing.");
+      setIsProcessing(false);
+    }
+  };
+
   return (
     <div className="max-w-3xl mx-auto mt-10">
       <div className="mb-8">
@@ -15,7 +80,11 @@ export default function UploadPage() {
 
       <div className="bg-white border border-slate-200 rounded-lg p-10 text-center">
         <div className="max-w-md mx-auto">
-          <div className="mt-4 flex justify-center rounded-lg border border-dashed border-slate-300 px-6 py-10">
+          <div
+            className="mt-4 flex justify-center rounded-lg border border-dashed border-slate-300 px-6 py-10"
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
+          >
             <div className="text-center">
               <svg
                 className="mx-auto h-12 w-12 text-slate-300"
@@ -41,58 +110,90 @@ export default function UploadPage() {
                     id="file-upload"
                     name="file-upload"
                     type="file"
+                    multiple
+                    accept=".csv,.xlsx,.xls"
                     className="sr-only"
+                    onChange={handleFileChange}
                   />
                 </label>
                 <p className="pl-1">or drag and drop</p>
               </div>
               <p className="text-xs leading-5 text-slate-500">
-                CSV or XLSX up to 10MB
+                CSV or XLSX only
               </p>
             </div>
           </div>
         </div>
 
-        {/* Mock selected files */}
-        <div className="mt-8 max-w-md mx-auto text-left">
-          <h4 className="text-sm font-medium text-slate-900">Selected Files</h4>
-          <ul className="mt-3 space-y-3">
-            <li className="flex items-center justify-between bg-slate-50 px-4 py-3 rounded-md border border-slate-200">
-              <div className="flex items-center">
-                <div className="h-8 w-8 bg-blue-100 text-blue-600 rounded flex items-center justify-center text-xs font-bold">
-                  XLSX
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm font-medium text-slate-900">
-                    September_AP.xlsx
-                  </p>
-                  <p className="text-xs text-slate-500">Ready</p>
-                </div>
-              </div>
-            </li>
-            <li className="flex items-center justify-between bg-slate-50 px-4 py-3 rounded-md border border-slate-200">
-              <div className="flex items-center">
-                <div className="h-8 w-8 bg-green-100 text-green-600 rounded flex items-center justify-center text-xs font-bold">
-                  CSV
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm font-medium text-slate-900">
-                    Expense_Claims.csv
-                  </p>
-                  <p className="text-xs text-slate-500">Ready</p>
-                </div>
-              </div>
-            </li>
-          </ul>
-        </div>
+        {files.length > 0 && (
+          <div className="mt-8 max-w-md mx-auto text-left">
+            <h4 className="text-sm font-medium text-slate-900">Selected Files</h4>
+            <ul className="mt-3 space-y-3">
+              {files.map((file, idx) => (
+                <li
+                  key={idx}
+                  className="flex items-center justify-between bg-slate-50 px-4 py-3 rounded-md border border-slate-200"
+                >
+                  <div className="flex items-center">
+                    <div
+                      className={`h-8 w-8 rounded flex items-center justify-center text-xs font-bold ${
+                        file.name.endsWith(".csv")
+                          ? "bg-green-100 text-green-600"
+                          : "bg-blue-100 text-blue-600"
+                      }`}
+                    >
+                      {file.name.split(".").pop()?.toUpperCase()}
+                    </div>
+                    <div className="ml-3">
+                      <p className="text-sm font-medium text-slate-900 truncate w-48">
+                        {file.name}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {(file.size / 1024).toFixed(1)} KB
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => removeFile(idx)}
+                    className="text-slate-400 hover:text-slate-600 focus:outline-none"
+                    disabled={isProcessing}
+                  >
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {error && (
+          <div className="mt-6 max-w-md mx-auto bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-md text-sm text-left flex flex-col gap-2">
+            <p>{error}</p>
+            {error.includes("successfully") && (
+              <button
+                onClick={() => router.push("/dashboard")}
+                className="self-start text-amber-900 font-semibold underline text-sm"
+              >
+                Continue to Dashboard
+              </button>
+            )}
+          </div>
+        )}
 
         <div className="mt-10">
-          <Link
-            href="/dashboard"
-            className="inline-flex justify-center rounded-md bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+          <button
+            onClick={handleAnalyze}
+            disabled={files.length === 0 || isProcessing}
+            className={`inline-flex justify-center rounded-md px-6 py-2.5 text-sm font-semibold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${
+              files.length === 0 || isProcessing
+                ? "bg-blue-400 cursor-not-allowed"
+                : "bg-blue-600 hover:bg-blue-500 focus-visible:outline-blue-600"
+            }`}
           >
-            Analyze Batch
-          </Link>
+            {isProcessing ? "Analyzing..." : "Analyze Batch"}
+          </button>
           <p className="mt-3 text-xs text-slate-500 flex items-center justify-center gap-1">
             <svg
               className="w-4 h-4"

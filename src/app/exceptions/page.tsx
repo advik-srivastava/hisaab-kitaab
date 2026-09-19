@@ -1,39 +1,69 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { StatusBadge } from "@/components/StatusBadge";
+import { loadState, type PersistedState } from "@/lib/storage";
 import { DecisionStatus } from "@/types/decisions";
 
-const mockExceptions = [
-  {
-    id: "INV-5500",
-    status: "HIGH_RISK" as DecisionStatus,
-    vendor: "Contoso Consulting",
-    amount: 45000,
-    issue: "Exact duplicate",
-  },
-  {
-    id: "HTL-450",
-    status: "HIGH_RISK" as DecisionStatus,
-    vendor: "Northwind Hotel",
-    amount: 14500,
-    issue: "Hotel policy exceeded",
-  },
-  {
-    id: "MS-4434",
-    status: "REVIEW" as DecisionStatus,
-    vendor: "Microsoft India Private Limited",
-    amount: 18500,
-    issue: "Potential duplicate",
-  },
-  {
-    id: "MEAL-992",
-    status: "REVIEW" as DecisionStatus,
-    vendor: "Cafe Delight",
-    amount: 2750,
-    issue: "Meal policy exceeded",
-  },
-];
+type FilterType = "All" | "HIGH_RISK" | "REVIEW";
 
 export default function ExceptionsPage() {
+  const [state, setState] = useState<PersistedState | null>(null);
+  const [filter, setFilter] = useState<FilterType>("All");
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setState(loadState());
+  }, []);
+
+  if (!state) {
+    return (
+      <div className="flex justify-center p-12">
+        <div className="text-slate-500">Loading...</div>
+      </div>
+    );
+  }
+
+  const batch = state.currentBatch;
+
+  if (!batch) {
+    return (
+      <div className="max-w-3xl mx-auto mt-10 text-center">
+        <h2 className="text-xl font-semibold text-slate-900 mb-2">No analyzed batch yet.</h2>
+        <Link href="/upload" className="text-blue-600 hover:underline">Upload a batch to get started.</Link>
+      </div>
+    );
+  }
+
+  const { transactions, decisions } = batch;
+  
+  const allExceptions = transactions.filter((t) => {
+    const status = decisions[t.id]?.status;
+    return status === "HIGH_RISK" || status === "REVIEW";
+  });
+
+  if (allExceptions.length === 0) {
+    return (
+      <div className="max-w-3xl mx-auto mt-10">
+        <div className="bg-white border border-slate-200 rounded-lg p-10 text-center shadow-sm">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100 mb-4">
+            <svg className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-semibold text-slate-900 mb-2">No exceptions require review.</h2>
+          <p className="text-sm text-slate-500">All transactions were auto-cleared.</p>
+        </div>
+      </div>
+    );
+  }
+
+  const filteredExceptions = allExceptions.filter((t) => {
+    if (filter === "All") return true;
+    return decisions[t.id]?.status === filter;
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -46,14 +76,34 @@ export default function ExceptionsPage() {
           </p>
         </div>
         <div className="flex space-x-2">
-          {/* Simple visual filters */}
-          <button className="px-3 py-1.5 bg-slate-900 text-white text-sm font-medium rounded-md">
+          <button
+            onClick={() => setFilter("All")}
+            className={`px-3 py-1.5 text-sm font-medium rounded-md border ${
+              filter === "All"
+                ? "bg-slate-900 text-white border-transparent"
+                : "bg-white border-slate-300 text-slate-700 hover:bg-slate-50"
+            }`}
+          >
             All
           </button>
-          <button className="px-3 py-1.5 bg-white border border-slate-300 text-slate-700 text-sm font-medium rounded-md hover:bg-slate-50">
+          <button
+            onClick={() => setFilter("HIGH_RISK")}
+            className={`px-3 py-1.5 text-sm font-medium rounded-md border ${
+              filter === "HIGH_RISK"
+                ? "bg-slate-900 text-white border-transparent"
+                : "bg-white border-slate-300 text-slate-700 hover:bg-slate-50"
+            }`}
+          >
             High Risk
           </button>
-          <button className="px-3 py-1.5 bg-white border border-slate-300 text-slate-700 text-sm font-medium rounded-md hover:bg-slate-50">
+          <button
+            onClick={() => setFilter("REVIEW")}
+            className={`px-3 py-1.5 text-sm font-medium rounded-md border ${
+              filter === "REVIEW"
+                ? "bg-slate-900 text-white border-transparent"
+                : "bg-white border-slate-300 text-slate-700 hover:bg-slate-50"
+            }`}
+          >
             Review
           </button>
         </div>
@@ -100,33 +150,43 @@ export default function ExceptionsPage() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-slate-200">
-              {mockExceptions.map((ex) => (
-                <tr key={ex.id} className="hover:bg-slate-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <StatusBadge status={ex.status} />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
-                    {ex.id}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                    {ex.vendor}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 font-medium">
-                    ₹{ex.amount.toLocaleString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                    {ex.issue}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <Link
-                      href={`/exceptions/${ex.id}`}
-                      className="text-blue-600 hover:text-blue-900"
-                    >
-                      View<span className="sr-only">, {ex.id}</span>
-                    </Link>
+              {filteredExceptions.map((t) => {
+                const decision = decisions[t.id];
+                return (
+                  <tr key={t.id} className="hover:bg-slate-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <StatusBadge status={decision.status as DecisionStatus} />
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
+                      {t.invoiceNumber || "-"}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                      {t.vendorName || "-"}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 font-medium">
+                      {t.amount ? `₹${t.amount.toLocaleString()}` : "-"}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                      {decision.headline || "Requires review"}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <Link
+                        href={`/exceptions/${t.id}`}
+                        className="text-blue-600 hover:text-blue-900"
+                      >
+                        View<span className="sr-only">, {t.id}</span>
+                      </Link>
+                    </td>
+                  </tr>
+                );
+              })}
+              {filteredExceptions.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-6 py-8 text-center text-sm text-slate-500">
+                    No records match the current filter.
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
