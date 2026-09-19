@@ -1,5 +1,6 @@
 import type { DuplicateMatch } from "../../types/duplicates";
 import type { Transaction } from "../../types/transaction";
+import type { DuplicateDetectionMetrics } from "./types";
 import {
   comparableInvoiceNumber,
   comparableVendor,
@@ -17,6 +18,7 @@ function baseEvidence(matchedTransactionId: string): string[] {
 export function findDuplicateForPair(
   current: Transaction,
   matched: Transaction,
+  metrics?: DuplicateDetectionMetrics,
 ): DuplicateMatch | undefined {
   if (current.id === matched.id) {
     return undefined;
@@ -98,6 +100,7 @@ export function findDuplicateForPair(
     return undefined;
   }
 
+  if (metrics) metrics.fuzzyComparisons += 1;
   const similarity = vendorSimilarity(currentVendor, matchedVendor);
   if (similarity < 90) {
     return undefined;
