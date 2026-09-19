@@ -1,0 +1,9 @@
+{
+  "supportedCurrencies": ["INR"],
+  "expenseLimits": {
+    "Meals": 2000,
+    "Taxi": 3000,
+    "Hotel": 10000
+  },
+  "purchaseOrderRequiredAbove": 25000
+}
