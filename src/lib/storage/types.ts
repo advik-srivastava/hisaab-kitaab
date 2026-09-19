@@ -1,5 +1,5 @@
 import type { AuditEvent } from "../../types/audit";
-import type { Decision } from "../../types/decisions";
+import type { BatchSummary, Decision } from "../../types/decisions";
 import type { DuplicateMatch } from "../../types/duplicates";
 import type { RuleResult } from "../../types/rules";
 import type { Transaction } from "../../types/transaction";
@@ -20,6 +20,7 @@ export interface StoredReviewAction {
 export interface PersistedBatch {
   batchId: string;
   createdAt: string;
+  batchSummary?: BatchSummary;
   transactions: Transaction[];
   ruleResults: Record<string, RuleResult[]>;
   duplicateMatches: Record<string, DuplicateMatch[]>;
@@ -36,6 +37,7 @@ export interface PersistedState {
 export interface AnalyzedBatchInput {
   batchId: string;
   createdAt: string;
+  batchSummary?: BatchSummary;
   transactions: Transaction[];
   ruleResults: Record<string, RuleResult[]>;
   duplicateMatches: Record<string, DuplicateMatch[]>;
