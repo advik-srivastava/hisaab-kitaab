@@ -89,6 +89,14 @@ export function analyzedBatch(): AnalyzedBatchInput {
   return {
     batchId: "batch-1",
     createdAt: "2026-09-19T00:00:00.000Z",
+    batchSummary: {
+      totalProcessed: 1,
+      autoPassed: 0,
+      needsReview: 0,
+      highRisk: 1,
+      duplicateCandidates: 1,
+      potentialExposure: 18500,
+    },
     transactions: [storedTransaction],
     ruleResults: { "TXN-001": [storedRule] },
     duplicateMatches: { "TXN-001": [storedDuplicate] },
@@ -139,15 +147,36 @@ describe("browser-safe persisted storage", () => {
     expect(getAuditEvents("TXN-001", storage)).toEqual([storedAuditEvent]);
   });
 
+  it("persists BatchSummary across save and load", () => {
+    const storage = new MemoryStorage();
+    const input = analyzedBatch();
+    saveAnalyzedBatch(input, storage);
+    expect(loadState(storage).currentBatch?.batchSummary).toEqual(
+      input.batchSummary,
+    );
+  });
+
   it("clear and reset restore empty state", () => {
     const storage = new MemoryStorage();
     saveAnalyzedBatch(analyzedBatch(), storage);
+    expect(loadState(storage).currentBatch?.batchSummary).toBeDefined();
     clearState(storage);
     expect(loadState(storage)).toEqual(createInitialState());
 
     saveAnalyzedBatch(analyzedBatch(), storage);
     expect(resetDemoData(storage)).toEqual(createInitialState());
     expect(loadState(storage)).toEqual(createInitialState());
+  });
+
+  it("loads older v1 batch data without a summary", () => {
+    const storage = new MemoryStorage();
+    const legacyInput = analyzedBatch();
+    delete legacyInput.batchSummary;
+    saveAnalyzedBatch(legacyInput, storage);
+    const loaded = loadState(storage).currentBatch;
+    expect(loaded?.batchId).toBe("batch-1");
+    expect(loaded?.transactions[0].id).toBe(storedTransaction.id);
+    expect(loaded?.batchSummary).toBeUndefined();
   });
 
   it("falls back safely for invalid JSON", () => {

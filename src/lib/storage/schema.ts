@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { auditEventSchema } from "../../types/audit";
-import { decisionSchema } from "../../types/decisions";
+import { batchSummarySchema, decisionSchema } from "../../types/decisions";
 import { duplicateMatchSchema } from "../../types/duplicates";
 import { ruleResultSchema } from "../../types/rules";
 import { transactionSchema } from "../../types/transaction";
@@ -24,6 +24,7 @@ const storedReviewActionSchema = z.object({
 const persistedBatchSchema = z.object({
   batchId: z.string(),
   createdAt: z.string(),
+  batchSummary: batchSummarySchema.optional(),
   transactions: z.array(transactionSchema),
   ruleResults: z.record(z.string(), z.array(ruleResultSchema)),
   duplicateMatches: z.record(z.string(), z.array(duplicateMatchSchema)),
