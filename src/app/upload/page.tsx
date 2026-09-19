@@ -66,23 +66,24 @@ export default function UploadPage() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto mt-10">
-      <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-slate-900">
+    <div className="max-w-3xl mx-auto mt-12 mb-20">
+      <div className="text-center mb-10">
+        <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
           Upload Invoice Batch
         </h1>
-        <p className="mt-2 text-sm text-slate-600">
-          Upload CSV or Excel files to identify policy exceptions and possible
-          duplicate transactions.
+        <p className="mt-3 text-base text-slate-600 max-w-xl mx-auto">
+          Upload a Finance batch (CSV or XLSX) and let <span className="font-semibold text-slate-700">hisaab<span className="text-blue-600">किताब</span></span> analyze it for policy exceptions and potential duplicates.
         </p>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-lg p-10 text-center">
-        <div className="max-w-md mx-auto">
+      <div className="bg-white border border-slate-200 rounded-xl p-8 sm:p-12 shadow-sm text-center">
+        <div className="max-w-lg mx-auto">
           <div
-            className="mt-4 flex justify-center rounded-lg border border-dashed border-slate-300 px-6 py-10"
-            onDrop={handleDrop}
-            onDragOver={handleDragOver}
+            className={`flex justify-center rounded-xl border-2 border-dashed px-6 py-12 transition-colors duration-200 ${
+              isProcessing ? "border-slate-200 bg-slate-50 opacity-50 cursor-not-allowed" : "border-slate-300 hover:border-blue-400 hover:bg-blue-50/50"
+            }`}
+            onDrop={isProcessing ? undefined : handleDrop}
+            onDragOver={isProcessing ? undefined : handleDragOver}
           >
             <div className="text-center">
               <svg
@@ -125,37 +126,41 @@ export default function UploadPage() {
         </div>
 
         {files.length > 0 && (
-          <div className="mt-8 max-w-md mx-auto text-left">
-            <h4 className="text-sm font-medium text-slate-900">Selected Files</h4>
-            <ul className="mt-3 space-y-3">
+          <div className="mt-10 max-w-lg mx-auto text-left">
+            <h4 className="text-sm font-semibold text-slate-900 flex items-center justify-between">
+              <span>Selected Files</span>
+              <span className="text-xs font-normal text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">{files.length} file{files.length !== 1 && 's'}</span>
+            </h4>
+            <ul className="mt-4 space-y-3">
               {files.map((file, idx) => (
                 <li
                   key={idx}
-                  className="flex items-center justify-between bg-slate-50 px-4 py-3 rounded-md border border-slate-200"
+                  className="flex items-center justify-between bg-white px-4 py-3 rounded-lg border border-slate-200 shadow-sm"
                 >
                   <div className="flex items-center">
                     <div
-                      className={`h-8 w-8 rounded flex items-center justify-center text-xs font-bold ${
+                      className={`h-10 w-10 rounded flex items-center justify-center text-xs font-bold ${
                         file.name.endsWith(".csv")
-                          ? "bg-green-100 text-green-600"
-                          : "bg-blue-100 text-blue-600"
+                          ? "bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20"
+                          : "bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20"
                       }`}
                     >
                       {file.name.split(".").pop()?.toUpperCase()}
                     </div>
-                    <div className="ml-3">
-                      <p className="text-sm font-medium text-slate-900 truncate w-48">
+                    <div className="ml-4">
+                      <p className="text-sm font-medium text-slate-900 truncate w-48 sm:w-64">
                         {file.name}
                       </p>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-slate-500 mt-0.5">
                         {(file.size / 1024).toFixed(1)} KB
                       </p>
                     </div>
                   </div>
                   <button
                     onClick={() => removeFile(idx)}
-                    className="text-slate-400 hover:text-slate-600 focus:outline-none"
+                    className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-1.5 rounded-md transition-colors focus:outline-none"
                     disabled={isProcessing}
+                    aria-label="Remove file"
                   >
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -168,34 +173,58 @@ export default function UploadPage() {
         )}
 
         {error && (
-          <div className="mt-6 max-w-md mx-auto bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-md text-sm text-left flex flex-col gap-2">
-            <p>{error}</p>
+          <div className="mt-8 max-w-lg mx-auto bg-red-50 border border-red-200 text-red-800 px-5 py-4 rounded-lg text-sm text-left flex flex-col gap-3 shadow-sm">
+            <div className="flex items-start gap-3">
+              <svg className="w-5 h-5 text-red-600 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <div>
+                <p className="font-semibold text-red-900">{error.includes("successfully") ? "Partial Processing Complete" : "Processing Failed"}</p>
+                <p className="mt-1 text-red-700 leading-relaxed">{error}</p>
+              </div>
+            </div>
             {error.includes("successfully") && (
               <button
                 onClick={() => router.push("/dashboard")}
-                className="self-start text-amber-900 font-semibold underline text-sm"
+                className="mt-1 ml-8 self-start inline-flex items-center gap-1.5 text-red-900 font-bold hover:text-red-700 transition-colors"
               >
                 Continue to Dashboard
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
               </button>
             )}
           </div>
         )}
 
-        <div className="mt-10">
+        <div className="mt-12 flex flex-col items-center">
           <button
             onClick={handleAnalyze}
             disabled={files.length === 0 || isProcessing}
-            className={`inline-flex justify-center rounded-md px-6 py-2.5 text-sm font-semibold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${
-              files.length === 0 || isProcessing
-                ? "bg-blue-400 cursor-not-allowed"
-                : "bg-blue-600 hover:bg-blue-500 focus-visible:outline-blue-600"
+            className={`inline-flex items-center justify-center rounded-lg px-8 py-3.5 text-sm font-semibold text-white shadow-sm transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 w-full sm:w-auto min-w-[200px] ${
+              files.length === 0
+                ? "bg-slate-300 cursor-not-allowed"
+                : isProcessing
+                ? "bg-blue-600/90 cursor-wait"
+                : "bg-blue-600 hover:bg-blue-700 hover:shadow-md focus-visible:outline-blue-600"
             }`}
           >
-            {isProcessing ? "Analyzing..." : "Analyze Batch"}
+            {isProcessing ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Analyzing...
+              </>
+            ) : (
+              "Analyze Batch"
+            )}
           </button>
-          <p className="mt-3 text-xs text-slate-500 flex items-center justify-center gap-1">
+          
+          <div className="mt-4 flex items-center justify-center gap-1.5 text-xs font-medium text-slate-500 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-200">
             <svg
-              className="w-4 h-4"
+              className="w-4 h-4 text-emerald-600"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -209,8 +238,8 @@ export default function UploadPage() {
                 d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
               />
             </svg>
-            Files are analyzed against configured Finance policies.
-          </p>
+            Files are analyzed against configured Finance policies
+          </div>
         </div>
       </div>
     </div>
