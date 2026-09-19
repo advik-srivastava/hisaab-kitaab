@@ -4,11 +4,13 @@ import * as XLSX from "xlsx";
 import { describe, expect, it } from "vitest";
 
 import { processBatch } from "../../src/core/pipeline";
+import { applyReviewAction } from "../../src/core/audit";
 import {
   getAuditEvents,
   getDecision,
   getDuplicateMatches,
   getRuleResults,
+  getReviewActions,
   getTransaction,
   loadState,
   type StorageLike,
@@ -154,6 +156,16 @@ describe("end-to-end batch processing", () => {
     ]);
   });
 
+  it("assigns distinct transaction IDs to identical invoice numbers", async () => {
+    const result = await processCsv(
+      `${header}\n${cleanRow}\n${cleanRow}`,
+    );
+    expect(result.transactions[0].invoiceNumber).toBe(
+      result.transactions[1].invoiceNumber,
+    );
+    expect(result.transactions[0].id).not.toBe(result.transactions[1].id);
+  });
+
   it("classifies probable duplicates as REVIEW", async () => {
     const result = await processCsv(
       `${header}\nContoso,INV-1,2026-09-18,1000,INR,Office,PO-1\nContoso,INV-2,2026-09-19,1000,INR,Office,PO-2`,
@@ -213,6 +225,19 @@ describe("pipeline associations", () => {
       currentTransactionId: secondId,
       matchedTransactionId: result.transactions[0].id,
     });
+  });
+
+  it("orders the strongest duplicate evidence first for detail views", async () => {
+    const result = await processCsv(
+      `${header}\nContoso,INV-1,2026-09-18,1000,INR,Office,PO-1\nContoso,INV-2,2026-09-19,1000,INR,Office,PO-2\nContoso,INV-1,2026-09-18,999,INR,Office,PO-3`,
+    );
+    const firstId = result.transactions[0].id;
+    expect(
+      result.duplicateMatches[firstId].map(({ matchType }) => matchType),
+    ).toEqual(["EXACT", "PROBABLE"]);
+    expect(result.duplicateMatches[firstId][0].matchedTransactionId).toBe(
+      result.transactions[2].id,
+    );
   });
 
   it("associates decisions with the correct transaction", async () => {
@@ -331,6 +356,35 @@ describe("persistence and audit integration", () => {
     const storage = new MemoryStorage();
     const result = await processBatch([csvFile(`${header}\n${cleanRow}`)], { ...fixedOptions, storage });
     expect(getRuleResults(result.transactions[0].id, storage)).toHaveLength(13);
+  });
+
+  it("preserves review action, original decision, and duplicate evidence after reload", async () => {
+    const storage = new MemoryStorage();
+    const result = await processBatch(
+      [csvFile(`${header}\n${cleanRow}\n${cleanRow}`)],
+      { ...fixedOptions, storage },
+    );
+    const transactionId = result.transactions[0].id;
+    const originalDecision = result.decisions[transactionId];
+    const originalMatches = result.duplicateMatches[transactionId];
+
+    applyReviewAction(
+      {
+        transactionId,
+        action: "MARK_NOT_DUPLICATE",
+        reviewer: "Finance Reviewer",
+      },
+      { storage, now: fixedOptions.now },
+    );
+
+    expect(getReviewActions(transactionId, storage).at(-1)?.action).toBe(
+      "MARK_NOT_DUPLICATE",
+    );
+    expect(getDecision(transactionId, storage)).toEqual(originalDecision);
+    expect(getDuplicateMatches(transactionId, storage)).toEqual(originalMatches);
+    expect(getAuditEvents(transactionId, storage).at(-1)?.action).toBe(
+      "MARK_NOT_DUPLICATE",
+    );
   });
 });
 

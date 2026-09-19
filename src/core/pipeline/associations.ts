@@ -25,5 +25,13 @@ export function associateDuplicateMatches(
     associations[match.matchedTransactionId]?.push(mirrorMatch(match));
   }
 
+  const precedence = { EXACT: 0, PROBABLE: 1, FUZZY: 2 } as const;
+  for (const matches of Object.values(associations)) {
+    matches.sort(
+      (first, second) =>
+        precedence[first.matchType] - precedence[second.matchType],
+    );
+  }
+
   return associations;
 }

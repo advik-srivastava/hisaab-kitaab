@@ -164,7 +164,9 @@ export default function ExceptionsPage() {
                       {t.vendorName || "-"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 font-medium">
-                      {t.amount ? `₹${t.amount.toLocaleString()}` : "-"}
+                      {typeof t.amount === "number" && Number.isFinite(t.amount)
+                        ? `₹${t.amount.toLocaleString()}`
+                        : "-"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                       {decision.headline || "Requires review"}

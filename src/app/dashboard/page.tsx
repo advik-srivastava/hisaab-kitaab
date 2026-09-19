@@ -146,7 +146,9 @@ export default function DashboardPage() {
                           </div>
                         </div>
                         <div className="text-sm font-semibold text-slate-900">
-                          {ex.amount ? `₹${ex.amount.toLocaleString()}` : "-"}
+                          {typeof ex.amount === "number" && Number.isFinite(ex.amount)
+                            ? `₹${ex.amount.toLocaleString()}`
+                            : "-"}
                         </div>
                       </div>
                     </Link>

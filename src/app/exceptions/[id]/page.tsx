@@ -29,6 +29,7 @@ export default function ExceptionDetailPage() {
   const [duplicateMatches, setDuplicateMatches] = useState<DuplicateMatch[]>([]);
   const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([]);
   const [matchedTransaction, setMatchedTransaction] = useState<Transaction | null>(null);
+  const [hasLoaded, setHasLoaded] = useState(false);
 
   const [note, setNote] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -54,7 +55,15 @@ export default function ExceptionDetailPage() {
         const bestMatch = matches[0];
         setMatchedTransaction(getTransaction(bestMatch.matchedTransactionId) || null);
       }
+    } else {
+      setTransaction(null);
+      setDecision(null);
+      setRuleResults([]);
+      setDuplicateMatches([]);
+      setAuditEvents([]);
+      setMatchedTransaction(null);
     }
+    setHasLoaded(true);
   };
 
   useEffect(() => {
@@ -86,10 +95,23 @@ export default function ExceptionDetailPage() {
     setIsProcessing(false);
   };
 
-  if (!transaction || !decision) {
+  if (!hasLoaded) {
     return (
       <div className="flex justify-center p-12">
         <div className="text-slate-500">Loading exception details...</div>
+      </div>
+    );
+  }
+
+  if (!transaction || !decision) {
+    return (
+      <div className="max-w-3xl mx-auto mt-10 text-center">
+        <h2 className="text-xl font-semibold text-slate-900 mb-2">
+          Exception not found.
+        </h2>
+        <Link href="/exceptions" className="text-blue-600 hover:underline">
+          Return to the exception queue.
+        </Link>
       </div>
     );
   }
@@ -134,7 +156,9 @@ export default function ExceptionDetailPage() {
               <div>
                 <span className="text-slate-500">Amount:</span>{" "}
                 <span className="font-medium text-slate-900">
-                  {transaction.amount ? `₹${transaction.amount.toLocaleString()}` : "-"}
+                  {typeof transaction.amount === "number" && Number.isFinite(transaction.amount)
+                    ? `₹${transaction.amount.toLocaleString()}`
+                    : "-"}
                 </span>
               </div>
             </div>
@@ -197,7 +221,9 @@ export default function ExceptionDetailPage() {
                   <div>
                     <div className="text-slate-500 text-xs uppercase tracking-wider mb-1">Amount</div>
                     <div className={`font-medium py-0.5 px-2 rounded-sm inline-block ${bestMatch.amountMatch ? "bg-red-50 text-red-700" : "text-slate-900"}`}>
-                      {transaction.amount ? `₹${transaction.amount.toLocaleString()}` : "-"}
+                      {typeof transaction.amount === "number" && Number.isFinite(transaction.amount)
+                        ? `₹${transaction.amount.toLocaleString()}`
+                        : "-"}
                     </div>
                   </div>
                   <div>
@@ -222,7 +248,9 @@ export default function ExceptionDetailPage() {
                   <div>
                     <div className="text-slate-500 text-xs uppercase tracking-wider mb-1">Amount</div>
                     <div className={`font-medium py-0.5 px-2 rounded-sm inline-block ${bestMatch.amountMatch ? "bg-red-50 text-red-700" : "text-slate-900"}`}>
-                      {matchedTransaction.amount ? `₹${matchedTransaction.amount.toLocaleString()}` : "-"}
+                      {typeof matchedTransaction.amount === "number" && Number.isFinite(matchedTransaction.amount)
+                        ? `₹${matchedTransaction.amount.toLocaleString()}`
+                        : "-"}
                     </div>
                   </div>
                   <div>
