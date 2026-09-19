@@ -1,23 +1,22 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { processBatch } from "@/core/pipeline";
 
 export default function UploadPage() {
   const router = useRouter();
+  const processingRef = useRef(false);
   const [files, setFiles] = useState<File[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      const selectedFiles = Array.from(e.target.files).filter(
-        (f) =>
-          f.name.endsWith(".csv") ||
-          f.name.endsWith(".xlsx") ||
-          f.name.endsWith(".xls")
-      );
+      const selectedFiles = Array.from(e.target.files).filter((f) => {
+        const name = f.name.toLowerCase();
+        return name.endsWith(".csv") || name.endsWith(".xlsx");
+      });
       setFiles((prev) => [...prev, ...selectedFiles]);
       setError(null);
     }
@@ -25,12 +24,10 @@ export default function UploadPage() {
 
   const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    const droppedFiles = Array.from(e.dataTransfer.files).filter(
-      (f) =>
-        f.name.endsWith(".csv") ||
-        f.name.endsWith(".xlsx") ||
-        f.name.endsWith(".xls")
-    );
+    const droppedFiles = Array.from(e.dataTransfer.files).filter((f) => {
+      const name = f.name.toLowerCase();
+      return name.endsWith(".csv") || name.endsWith(".xlsx");
+    });
     setFiles((prev) => [...prev, ...droppedFiles]);
     setError(null);
   }, []);
@@ -44,7 +41,8 @@ export default function UploadPage() {
   };
 
   const handleAnalyze = async () => {
-    if (files.length === 0 || isProcessing) return;
+    if (files.length === 0 || processingRef.current) return;
+    processingRef.current = true;
     setIsProcessing(true);
     setError(null);
 
@@ -58,10 +56,11 @@ export default function UploadPage() {
         }
       } else {
         setError("All files failed to process or no valid transactions were found.");
-        setIsProcessing(false);
       }
     } catch {
       setError("An unexpected error occurred during processing.");
+    } finally {
+      processingRef.current = false;
       setIsProcessing(false);
     }
   };
@@ -111,7 +110,7 @@ export default function UploadPage() {
                     name="file-upload"
                     type="file"
                     multiple
-                    accept=".csv,.xlsx,.xls"
+                    accept=".csv,.xlsx"
                     className="sr-only"
                     onChange={handleFileChange}
                   />
