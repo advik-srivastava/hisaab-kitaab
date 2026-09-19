@@ -1,0 +1,7 @@
+﻿Vendor,Invoice Number,Invoice Date,Amount,Currency,Expense Category,Purchase Order,Description
+Alpha Foods,A-100,2026-09-15,1500,INR,Meals,,Clean meal expense
+Contoso Consulting,INV-5500,2026-09-12,45000,INR,Consulting,PO-5500,Consulting invoice
+Contoso Consulting,INV-5500,2026-09-12,45000,INR,Consulting,PO-5500,Duplicate consulting invoice
+Northwind Hotel,HTL-450,2026-09-10,14500,INR,Hotel,,Hotel above policy
+Cafe Delight,MEAL-992,2026-09-11,2750,INR,Meals,,Meal above policy
+City Cabs,TAXI-100,2026-09-14,2500,INR,Taxi,,Valid taxi expense
