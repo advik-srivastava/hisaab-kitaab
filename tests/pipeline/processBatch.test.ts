@@ -352,10 +352,21 @@ describe("persistence and audit integration", () => {
     expect(getAuditEvents(id, storage).some(({ action }) => action === "STATUS_ASSIGNED")).toBe(true);
   });
 
-  it("persists rule results through the orchestrator", async () => {
+  it("does not persist PASS rule results", async () => {
     const storage = new MemoryStorage();
     const result = await processBatch([csvFile(`${header}\n${cleanRow}`)], { ...fixedOptions, storage });
-    expect(getRuleResults(result.transactions[0].id, storage)).toHaveLength(13);
+    expect(getRuleResults(result.transactions[0].id, storage)).toEqual([]);
+    expect(result.ruleResults[result.transactions[0].id]).toHaveLength(13);
+  });
+
+  it("persists failed rule evidence through the orchestrator", async () => {
+    const storage = new MemoryStorage();
+    const result = await processBatch([
+      csvFile(`${header}\nContoso,INV-1,2026-09-18,10000.01,INR,Hotel,PO-1`),
+    ], { ...fixedOptions, storage });
+    const persisted = getRuleResults(result.transactions[0].id, storage);
+    expect(persisted.length).toBeGreaterThan(0);
+    expect(persisted.every(({ status }) => status === "FAIL")).toBe(true);
   });
 
   it("preserves review action, original decision, and duplicate evidence after reload", async () => {

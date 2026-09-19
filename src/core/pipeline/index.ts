@@ -1,2 +1,6 @@
 export { processBatch } from "./processBatch";
-export type { ProcessBatchOptions, ProcessBatchResult } from "./types";
+export type {
+  ProcessingMetrics,
+  ProcessBatchOptions,
+  ProcessBatchResult,
+} from "./types";

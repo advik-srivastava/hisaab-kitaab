@@ -2,9 +2,10 @@ import type { AuditEvent, ActorType } from "../../types/audit";
 import type { DecisionStatus } from "../../types/decisions";
 import {
   loadState,
-  saveState,
+  saveStateWithResult,
   type PersistedState,
   type StorageLike,
+  type StorageWriteResult,
 } from "../../lib/storage";
 
 export interface AuditRuntimeOptions {
@@ -21,6 +22,27 @@ export interface AppendAuditEventInput {
   oldStatus?: DecisionStatus | null;
   newStatus?: DecisionStatus | null;
   note?: string | null;
+}
+
+export interface AppendAuditEventsResult {
+  events: AuditEvent[];
+  persistence: StorageWriteResult;
+}
+
+function invalidBatchResult(): AppendAuditEventsResult {
+  return {
+    events: [],
+    persistence: {
+      success: false,
+      serializedBytes: 0,
+      serializationMs: 0,
+      writeMs: 0,
+      error: {
+        code: "INVALID_STATE",
+        message: "The audit batch does not match persisted state.",
+      },
+    },
+  };
 }
 
 function createAuditEvent(
@@ -48,14 +70,33 @@ export function appendAuditEvent(
   input: AppendAuditEventInput,
   options: AuditRuntimeOptions = {},
 ): AuditEvent | undefined {
+  const result = appendAuditEvents([input], options);
+  return result.persistence.success ? result.events[0] : undefined;
+}
+
+export function appendAuditEvents(
+  inputs: readonly AppendAuditEventInput[],
+  options: AuditRuntimeOptions = {},
+): AppendAuditEventsResult {
   const state = loadState(options.storage);
-  if (!state.currentBatch || state.currentBatch.batchId !== input.batchId) {
-    return undefined;
+  if (
+    !state.currentBatch ||
+    inputs.some(({ batchId }) => batchId !== state.currentBatch?.batchId)
+  ) {
+    return invalidBatchResult();
   }
 
-  const event = createAuditEvent(state, input, options.now ?? (() => new Date()));
-  state.currentBatch.auditEvents.push(event);
-  return saveState(state, options.storage) ? event : undefined;
+  const now = options.now ?? (() => new Date());
+  const events = inputs.map((input) => {
+    const event = createAuditEvent(state, input, now);
+    state.currentBatch!.auditEvents.push(event);
+    return event;
+  });
+
+  return {
+    events,
+    persistence: saveStateWithResult(state, options.storage),
+  };
 }
 
 export { createAuditEvent };

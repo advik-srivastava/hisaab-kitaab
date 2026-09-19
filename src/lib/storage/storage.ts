@@ -4,6 +4,8 @@ import {
   STORAGE_VERSION,
   type PersistedState,
   type StorageLike,
+  type StorageWriteErrorCode,
+  type StorageWriteResult,
 } from "./types";
 
 export function createInitialState(): PersistedState {
@@ -45,26 +47,104 @@ export function loadState(storage?: StorageLike): PersistedState {
   }
 }
 
-export function saveState(
+function elapsed(startedAt: number): number {
+  return performance.now() - startedAt;
+}
+
+function failedWrite(
+  code: StorageWriteErrorCode,
+  message: string,
+  serializedBytes = 0,
+  serializationMs = 0,
+): StorageWriteResult {
+  return {
+    success: false,
+    serializedBytes,
+    serializationMs,
+    writeMs: 0,
+    error: { code, message },
+  };
+}
+
+function isQuotaError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const candidate = error as { name?: string; code?: number };
+  return (
+    candidate.name === "QuotaExceededError" ||
+    candidate.name === "NS_ERROR_DOM_QUOTA_REACHED" ||
+    candidate.code === 22 ||
+    candidate.code === 1014
+  );
+}
+
+export function serializedSizeBytes(value: unknown): number {
+  return new TextEncoder().encode(JSON.stringify(value)).byteLength;
+}
+
+export function saveStateWithResult(
   state: PersistedState,
   storage?: StorageLike,
-): boolean {
+): StorageWriteResult {
   const target = resolveStorage(storage);
   if (!target) {
-    return false;
+    return failedWrite(
+      "STORAGE_UNAVAILABLE",
+      "Browser storage is unavailable.",
+    );
   }
 
   const validated = persistedStateSchema.safeParse(state);
   if (!validated.success) {
-    return false;
+    return failedWrite("INVALID_STATE", "Persisted state is invalid.");
   }
 
+  let serialized: string;
+  const serializationStarted = performance.now();
   try {
-    target.setItem(STORAGE_KEY, JSON.stringify(validated.data));
-    return true;
+    serialized = JSON.stringify(validated.data);
   } catch {
-    return false;
+    return failedWrite(
+      "SERIALIZATION_FAILED",
+      "Persisted state could not be serialized.",
+      0,
+      elapsed(serializationStarted),
+    );
   }
+
+  const serializationMs = elapsed(serializationStarted);
+  const serializedBytes = new TextEncoder().encode(serialized).byteLength;
+  const writeStarted = performance.now();
+  try {
+    target.setItem(STORAGE_KEY, serialized);
+    return {
+      success: true,
+      serializedBytes,
+      serializationMs,
+      writeMs: elapsed(writeStarted),
+    };
+  } catch (error) {
+    const code = isQuotaError(error) ? "QUOTA_EXCEEDED" : "WRITE_FAILED";
+    return {
+      success: false,
+      serializedBytes,
+      serializationMs,
+      writeMs: elapsed(writeStarted),
+      error: {
+        code,
+        message:
+          code === "QUOTA_EXCEEDED"
+            ? "Browser storage quota was exceeded."
+            : "Browser storage could not be written.",
+      },
+    };
+  }
+}
+
+export function saveState(
+  state: PersistedState,
+  storage?: StorageLike,
+): boolean {
+  return saveStateWithResult(state, storage).success;
 }
 
 export function clearState(storage?: StorageLike): void {

@@ -50,3 +50,23 @@ export interface StorageLike {
   setItem(key: string, value: string): void;
   removeItem(key: string): void;
 }
+
+export type StorageWriteErrorCode =
+  | "STORAGE_UNAVAILABLE"
+  | "INVALID_STATE"
+  | "SERIALIZATION_FAILED"
+  | "QUOTA_EXCEEDED"
+  | "WRITE_FAILED";
+
+export interface StorageWriteError {
+  code: StorageWriteErrorCode;
+  message: string;
+}
+
+export interface StorageWriteResult {
+  success: boolean;
+  serializedBytes: number;
+  serializationMs: number;
+  writeMs: number;
+  error?: StorageWriteError;
+}

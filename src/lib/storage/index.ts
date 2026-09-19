@@ -6,6 +6,8 @@ export {
   getRuleResults,
   getTransaction,
   saveAnalyzedBatch,
+  saveAnalyzedBatchWithResult,
+  type SaveAnalyzedBatchResult,
 } from "./batch";
 export {
   clearState,
@@ -13,6 +15,8 @@ export {
   loadState,
   resetDemoData,
   saveState,
+  saveStateWithResult,
+  serializedSizeBytes,
 } from "./storage";
 export {
   STORAGE_KEY,
@@ -22,5 +26,8 @@ export {
   type PersistedState,
   type ReviewAction,
   type StorageLike,
+  type StorageWriteError,
+  type StorageWriteErrorCode,
+  type StorageWriteResult,
   type StoredReviewAction,
 } from "./types";

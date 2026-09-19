@@ -3,28 +3,48 @@ import type { Decision } from "../../types/decisions";
 import type { DuplicateMatch } from "../../types/duplicates";
 import type { RuleResult } from "../../types/rules";
 import type { Transaction } from "../../types/transaction";
-import { loadState, saveState } from "./storage";
+import { loadState, saveStateWithResult } from "./storage";
 import type {
   AnalyzedBatchInput,
   PersistedState,
   StorageLike,
   StoredReviewAction,
+  StorageWriteResult,
 } from "./types";
+
+export interface SaveAnalyzedBatchResult {
+  state: PersistedState;
+  persistence: StorageWriteResult;
+}
+
+export function saveAnalyzedBatchWithResult(
+  input: AnalyzedBatchInput,
+  storage?: StorageLike,
+): SaveAnalyzedBatchResult {
+  const failedRuleResults = Object.fromEntries(
+    Object.entries(input.ruleResults).map(([transactionId, results]) => [
+      transactionId,
+      results.filter(({ status }) => status === "FAIL"),
+    ]),
+  );
+
+  const state: PersistedState = {
+    version: 1,
+    currentBatch: {
+      ...input,
+      ruleResults: failedRuleResults,
+      auditEvents: input.auditEvents ?? [],
+      reviewActions: {},
+    },
+  };
+  return { state, persistence: saveStateWithResult(state, storage) };
+}
 
 export function saveAnalyzedBatch(
   input: AnalyzedBatchInput,
   storage?: StorageLike,
 ): PersistedState {
-  const state: PersistedState = {
-    version: 1,
-    currentBatch: {
-      ...input,
-      auditEvents: input.auditEvents ?? [],
-      reviewActions: {},
-    },
-  };
-  saveState(state, storage);
-  return state;
+  return saveAnalyzedBatchWithResult(input, storage).state;
 }
 
 export function getTransaction(
