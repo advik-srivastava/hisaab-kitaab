@@ -8,9 +8,9 @@ export function MetricCard({
   isCurrency?: boolean;
 }) {
   return (
-    <div className="bg-white rounded-lg border border-slate-200 p-6 shadow-sm">
-      <h3 className="text-sm font-medium text-slate-500">{title}</h3>
-      <p className="mt-2 text-3xl font-semibold text-slate-900">
+    <div className="bg-white rounded-xl border border-slate-200/75 p-6 shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col justify-between">
+      <h3 className="text-sm font-medium text-slate-600">{title}</h3>
+      <p className="mt-3 text-3xl font-semibold text-slate-900 tracking-tight">
         {isCurrency ? `₹${value.toLocaleString()}` : value}
       </p>
     </div>
