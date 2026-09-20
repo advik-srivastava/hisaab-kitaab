@@ -3,26 +3,55 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { StatusBadge } from "@/components/StatusBadge";
-import { loadStateAsync, type PersistedState } from "@/lib/storage";
-import { DecisionStatus } from "@/types/decisions";
+import {
+  DEFAULT_EXCEPTION_PAGE_SIZE,
+  getCurrentBatchMetadata,
+  getExceptionsPage,
+  type BatchMetadata,
+  type ExceptionsPageResult,
+} from "@/lib/storage";
 
 type FilterType = "All" | "HIGH_RISK" | "REVIEW";
 
 export default function ExceptionsPage() {
-  const [state, setState] = useState<PersistedState | null>(null);
+  const [metadata, setMetadata] = useState<BatchMetadata | null>();
+  const [result, setResult] = useState<ExceptionsPageResult>();
   const [filter, setFilter] = useState<FilterType>("All");
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string>();
 
   useEffect(() => {
     let active = true;
-    void loadStateAsync().then((loaded) => {
-      if (active) setState(loaded);
-    });
+    void (async () => {
+      try {
+        const current = await getCurrentBatchMetadata();
+        if (!active) return;
+        setMetadata(current ?? null);
+        if (!current) return;
+        const loaded = await getExceptionsPage({
+          batchId: current.batchId,
+          status: filter === "All" ? undefined : filter,
+          page,
+          pageSize: DEFAULT_EXCEPTION_PAGE_SIZE,
+        });
+        if (active) setResult(loaded);
+      } catch {
+        if (active) setLoadError("Exceptions could not be loaded from browser storage.");
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
     return () => {
       active = false;
     };
-  }, []);
+  }, [filter, page]);
 
-  if (!state) {
+  if (loadError) {
+    return <div className="p-12 text-center text-sm text-red-600">{loadError}</div>;
+  }
+
+  if (metadata === undefined || (loading && !result)) {
     return (
       <div className="flex justify-center p-12">
         <div className="text-slate-500">Loading exceptions...</div>
@@ -30,9 +59,7 @@ export default function ExceptionsPage() {
     );
   }
 
-  const batch = state.currentBatch;
-
-  if (!batch) {
+  if (!metadata) {
     return (
       <div className="max-w-3xl mx-auto mt-10 text-center">
         <h2 className="text-xl font-semibold text-slate-900 mb-2">No analyzed batch yet.</h2>
@@ -41,14 +68,19 @@ export default function ExceptionsPage() {
     );
   }
 
-  const { transactions, decisions } = batch;
-  
-  const allExceptions = transactions.filter((t) => {
-    const status = decisions[t.id]?.status;
-    return status === "HIGH_RISK" || status === "REVIEW";
-  });
+  if (!result) {
+    return (
+      <div className="flex justify-center p-12">
+        <div className="text-slate-500">Loading exceptions...</div>
+      </div>
+    );
+  }
 
-  if (allExceptions.length === 0) {
+  const totalExceptions = metadata.batchSummary
+    ? metadata.batchSummary.highRisk + metadata.batchSummary.needsReview
+    : filter === "All" ? result.totalItems : undefined;
+
+  if (totalExceptions === 0) {
     return (
       <div className="max-w-3xl mx-auto mt-12">
         <div className="bg-white border border-slate-200/75 rounded-xl p-12 text-center shadow-sm">
@@ -64,10 +96,20 @@ export default function ExceptionsPage() {
     );
   }
 
-  const filteredExceptions = allExceptions.filter((t) => {
-    if (filter === "All") return true;
-    return decisions[t.id]?.status === filter;
-  });
+  const selectFilter = (nextFilter: FilterType) => {
+    if (nextFilter === filter && page === 1) return;
+    setLoading(true);
+    setLoadError(undefined);
+    setFilter(nextFilter);
+    setPage(1);
+  };
+
+  const selectPage = (nextPage: number) => {
+    if (nextPage === page) return;
+    setLoading(true);
+    setLoadError(undefined);
+    setPage(nextPage);
+  };
 
   return (
     <div className="space-y-8">
@@ -82,7 +124,7 @@ export default function ExceptionsPage() {
         </div>
         <div className="flex bg-slate-100 p-1 rounded-lg">
           <button
-            onClick={() => setFilter("All")}
+            onClick={() => selectFilter("All")}
             className={`px-4 py-1.5 text-sm font-semibold rounded-md transition-all duration-200 ${
               filter === "All"
                 ? "bg-white text-slate-900 shadow-sm ring-1 ring-slate-200/50"
@@ -92,7 +134,7 @@ export default function ExceptionsPage() {
             All
           </button>
           <button
-            onClick={() => setFilter("HIGH_RISK")}
+            onClick={() => selectFilter("HIGH_RISK")}
             className={`px-4 py-1.5 text-sm font-semibold rounded-md transition-all duration-200 ${
               filter === "HIGH_RISK"
                 ? "bg-white text-slate-900 shadow-sm ring-1 ring-slate-200/50"
@@ -102,7 +144,7 @@ export default function ExceptionsPage() {
             High Risk
           </button>
           <button
-            onClick={() => setFilter("REVIEW")}
+            onClick={() => selectFilter("REVIEW")}
             className={`px-4 py-1.5 text-sm font-semibold rounded-md transition-all duration-200 ${
               filter === "REVIEW"
                 ? "bg-white text-slate-900 shadow-sm ring-1 ring-slate-200/50"
@@ -155,12 +197,11 @@ export default function ExceptionsPage() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-slate-100">
-              {filteredExceptions.map((t) => {
-                const decision = decisions[t.id];
+              {!loading && result.items.map(({ transaction: t, decision }) => {
                 return (
                   <tr key={t.id} className="hover:bg-slate-50/70 transition-colors group">
                     <td className="px-6 py-5 whitespace-nowrap">
-                      <StatusBadge status={decision.status as DecisionStatus} />
+                      <StatusBadge status={decision.status} />
                     </td>
                     <td className="px-6 py-5 whitespace-nowrap text-sm font-semibold text-slate-900">
                       {t.invoiceNumber || "-"}
@@ -191,15 +232,43 @@ export default function ExceptionsPage() {
                   </tr>
                 );
               })}
-              {filteredExceptions.length === 0 && (
+              {loading && (
                 <tr>
                   <td colSpan={6} className="px-6 py-8 text-center text-sm text-slate-500">
-                    No records match the current filter.
+                    Loading exceptions...
+                  </td>
+                </tr>
+              )}
+              {!loading && result.items.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-6 py-8 text-center text-sm text-slate-500">
+                    No exceptions found for this filter.
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
+        </div>
+        <div className="flex items-center justify-between border-t border-slate-200 px-6 py-4">
+          <button
+            type="button"
+            onClick={() => selectPage(Math.max(1, result.page - 1))}
+            disabled={loading || result.page <= 1}
+            className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Previous
+          </button>
+          <span className="text-sm font-medium text-slate-600">
+            {loading ? "Loading..." : `Page ${result.page} of ${Math.max(1, result.totalPages)}`}
+          </span>
+          <button
+            type="button"
+            onClick={() => selectPage(result.page + 1)}
+            disabled={loading || result.totalPages === 0 || result.page >= result.totalPages}
+            className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Next
+          </button>
         </div>
       </div>
     </div>

@@ -7,6 +7,9 @@ import {
   BATCH_MARKER_KEY,
   STORAGE_KEY,
   type BatchMetadata,
+  DEFAULT_EXCEPTION_PAGE_SIZE,
+  type ExceptionsPageQuery,
+  type ExceptionsPageResult,
   type PersistedBatch,
   type PersistenceAdapter,
   type StorageWriteResult,
@@ -14,7 +17,7 @@ import {
 } from "./types";
 
 export const DATABASE_NAME = "hisaab-kitaab";
-export const DATABASE_VERSION = 1;
+export const DATABASE_VERSION = 2;
 export const OBJECT_STORES = {
   batches: "batches",
   transactions: "transactions",
@@ -33,7 +36,14 @@ interface DuplicateRecord {
   matchedTransactionIds: string[];
   matches: DuplicateMatch[];
 }
-interface DecisionRecord { transactionId: string; batchId: string; decision: Decision }
+interface DecisionRecord {
+  transactionId: string;
+  batchId: string;
+  status: Decision["status"];
+  statusRank: number;
+  order: number;
+  decision: Decision;
+}
 interface ReviewRecord { transactionId: string; batchId: string; actions: StoredReviewAction[] }
 interface AuditRecord {
   id: string;
@@ -58,6 +68,21 @@ function transactionDone(transaction: IDBTransaction): Promise<void> {
   });
 }
 
+function statusRank(status: Decision["status"]): number {
+  if (status === "HIGH_RISK") return 0;
+  if (status === "REVIEW") return 1;
+  return 2;
+}
+
+function addDecisionIndexes(decisions: IDBObjectStore): void {
+  if (!decisions.indexNames.contains("exceptionOrder")) {
+    decisions.createIndex("exceptionOrder", ["batchId", "statusRank", "order"]);
+  }
+  if (!decisions.indexNames.contains("statusOrder")) {
+    decisions.createIndex("statusOrder", ["batchId", "status", "order"]);
+  }
+}
+
 function createSchema(database: IDBDatabase): void {
   const batches = database.createObjectStore(OBJECT_STORES.batches, { keyPath: "batchId" });
   batches.createIndex("current", "current");
@@ -70,6 +95,7 @@ function createSchema(database: IDBDatabase): void {
   duplicates.createIndex("matchedTransactionIds", "matchedTransactionIds", { multiEntry: true });
   const decisions = database.createObjectStore(OBJECT_STORES.decisions, { keyPath: "transactionId" });
   decisions.createIndex("batchId", "batchId");
+  addDecisionIndexes(decisions);
   const reviews = database.createObjectStore(OBJECT_STORES.reviewState, { keyPath: "transactionId" });
   reviews.createIndex("batchId", "batchId");
   const audits = database.createObjectStore(OBJECT_STORES.auditEvents, { keyPath: "id" });
@@ -80,7 +106,31 @@ function createSchema(database: IDBDatabase): void {
 function openDatabase(factory: IDBFactory): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = factory.open(DATABASE_NAME, DATABASE_VERSION);
-    request.onupgradeneeded = () => createSchema(request.result);
+    request.onupgradeneeded = (event) => {
+      const oldVersion = (event as IDBVersionChangeEvent).oldVersion;
+      if (oldVersion === 0) {
+        createSchema(request.result);
+        return;
+      }
+      if (oldVersion < 2 && request.transaction) {
+        const decisions = request.transaction.objectStore(OBJECT_STORES.decisions);
+        addDecisionIndexes(decisions);
+        let order = 0;
+        decisions.openCursor().onsuccess = (cursorEvent) => {
+          const cursor = (cursorEvent.target as IDBRequest<IDBCursorWithValue | null>).result;
+          if (!cursor) return;
+          const record = cursor.value as Partial<DecisionRecord> & Pick<DecisionRecord, "decision">;
+          cursor.update({
+            ...record,
+            status: record.decision.status,
+            statusRank: statusRank(record.decision.status),
+            order,
+          });
+          order += 1;
+          cursor.continue();
+        };
+      }
+    };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
     request.onblocked = () => reject(new Error("IndexedDB upgrade was blocked."));
@@ -188,6 +238,72 @@ export class IndexedDbPersistence implements PersistenceAdapter {
     };
   }
 
+  async getExceptionsPage(query: ExceptionsPageQuery): Promise<ExceptionsPageResult> {
+    const startedAt = performance.now();
+    const page = Math.max(1, Math.trunc(query.page ?? 1));
+    const pageSize = Math.max(1, Math.trunc(query.pageSize ?? DEFAULT_EXCEPTION_PAGE_SIZE));
+    const database = await this.database();
+    const transaction = database.transaction(OBJECT_STORES.decisions, "readonly");
+    const decisions = transaction.objectStore(OBJECT_STORES.decisions);
+    const index = query.status
+      ? decisions.index("statusOrder")
+      : decisions.index("exceptionOrder");
+    const range = query.status
+      ? IDBKeyRange.bound(
+          [query.batchId, query.status, Number.MIN_SAFE_INTEGER],
+          [query.batchId, query.status, Number.MAX_SAFE_INTEGER],
+        )
+      : IDBKeyRange.bound(
+          [query.batchId, 0, Number.MIN_SAFE_INTEGER],
+          [query.batchId, 1, Number.MAX_SAFE_INTEGER],
+        );
+    const totalItemsPromise = requestResult(index.count(range));
+    const recordsPromise = new Promise<DecisionRecord[]>((resolve, reject) => {
+      const records: DecisionRecord[] = [];
+      const offset = (page - 1) * pageSize;
+      let advanced = false;
+      const request = index.openCursor(range);
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        const cursor = request.result;
+        if (!cursor || records.length === pageSize) {
+          resolve(records);
+          return;
+        }
+        if (offset > 0 && !advanced) {
+          advanced = true;
+          cursor.advance(offset);
+          return;
+        }
+        records.push(cursor.value as DecisionRecord);
+        cursor.continue();
+      };
+    });
+    const [totalItems, records] = await Promise.all([totalItemsPromise, recordsPromise]);
+    const transactionStore = database
+      .transaction(OBJECT_STORES.transactions, "readonly")
+      .objectStore(OBJECT_STORES.transactions);
+    const transactions = await Promise.all(
+      records.map(({ transactionId }) =>
+        requestResult(transactionStore.get(transactionId) as IDBRequest<Transaction | undefined>),
+      ),
+    );
+    const items = records.flatMap((record, indexPosition) => {
+      const storedTransaction = transactions[indexPosition];
+      return storedTransaction
+        ? [{ transaction: storedTransaction, decision: record.decision }]
+        : [];
+    });
+    return {
+      items,
+      page,
+      pageSize,
+      totalItems,
+      totalPages: totalItems === 0 ? 0 : Math.ceil(totalItems / pageSize),
+      queryMs: performance.now() - startedAt,
+    };
+  }
+
   async getBatchSummary(): Promise<BatchSummary | undefined> {
     return (await this.getCurrentBatchMetadata())?.batchSummary;
   }
@@ -246,7 +362,19 @@ export class IndexedDbPersistence implements PersistenceAdapter {
           }]
         : [];
     });
-    const decisions: DecisionRecord[] = Object.entries(batch.decisions).map(([transactionId, decision]) => ({ transactionId, batchId: batch.batchId, decision }));
+    const decisions: DecisionRecord[] = batch.transactions.flatMap(({ id: transactionId }, order) => {
+      const decision = batch.decisions[transactionId];
+      return decision
+        ? [{
+            transactionId,
+            batchId: batch.batchId,
+            status: decision.status,
+            statusRank: statusRank(decision.status),
+            order,
+            decision,
+          }]
+        : [];
+    });
     const reviews: ReviewRecord[] = Object.entries(batch.reviewActions).map(([transactionId, actions]) => ({ transactionId, batchId: batch.batchId, actions }));
     const audits: AuditRecord[] = batch.auditEvents.map((event, order) => ({ id: event.id, batchId: batch.batchId, transactionId: event.transactionId, order, event }));
     const records: unknown[] = [metadata, ...batch.transactions, ...rules, ...duplicates, ...decisions, ...reviews, ...audits];

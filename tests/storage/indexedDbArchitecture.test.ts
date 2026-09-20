@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { applyReviewActionAsync } from "../../src/core/audit";
 import {
   DATABASE_NAME,
+  DATABASE_VERSION,
   OBJECT_STORES,
   getAuditEventsAsync,
   getDecisionAsync,
@@ -22,6 +23,7 @@ const passRule: RuleResult = { ...storedRule, status: "PASS" };
 describe("async normalized persistence", () => {
   it("defines the IndexedDB database and normalized stores", () => {
     expect(DATABASE_NAME).toBe("hisaab-kitaab");
+    expect(DATABASE_VERSION).toBe(2);
     expect(Object.values(OBJECT_STORES)).toEqual([
       "batches",
       "transactions",

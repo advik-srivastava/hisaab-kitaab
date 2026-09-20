@@ -5,8 +5,12 @@ import type { RuleResult } from "../../types/rules";
 import type { Transaction } from "../../types/transaction";
 import { getBrowserPersistence } from "./indexedDb";
 import { loadState, saveStateWithResult } from "./storage";
+import { DEFAULT_EXCEPTION_PAGE_SIZE } from "./types";
 import type {
   AnalyzedBatchInput,
+  BatchMetadata,
+  ExceptionsPageQuery,
+  ExceptionsPageResult,
   PersistedState,
   PersistenceAdapter,
   StorageLike,
@@ -137,6 +141,60 @@ function adapterFor(target?: PersistenceTarget): PersistenceAdapter | undefined 
 export async function getCurrentBatch(target?: PersistenceTarget) {
   if (target && !isPersistenceAdapter(target)) return loadState(target).currentBatch;
   return (await adapterFor(target)?.getCurrentBatch()) ?? null;
+}
+
+export async function getCurrentBatchMetadata(
+  target?: PersistenceTarget,
+): Promise<BatchMetadata | undefined> {
+  if (target && !isPersistenceAdapter(target)) {
+    const batch = loadState(target).currentBatch;
+    return batch
+      ? { batchId: batch.batchId, createdAt: batch.createdAt, batchSummary: batch.batchSummary }
+      : undefined;
+  }
+  return adapterFor(target)?.getCurrentBatchMetadata();
+}
+
+export async function getExceptionsPage(
+  query: ExceptionsPageQuery,
+  target?: PersistenceTarget,
+): Promise<ExceptionsPageResult> {
+  const adapter = adapterFor(target);
+  if (!target || isPersistenceAdapter(target)) {
+    if (adapter) return adapter.getExceptionsPage(query);
+    const page = Math.max(1, Math.trunc(query.page ?? 1));
+    const pageSize = Math.max(1, Math.trunc(query.pageSize ?? DEFAULT_EXCEPTION_PAGE_SIZE));
+    return { items: [], page, pageSize, totalItems: 0, totalPages: 0, queryMs: 0 };
+  }
+
+  const startedAt = performance.now();
+  const page = Math.max(1, Math.trunc(query.page ?? 1));
+  const pageSize = Math.max(1, Math.trunc(query.pageSize ?? DEFAULT_EXCEPTION_PAGE_SIZE));
+  const batch = loadState(target).currentBatch;
+  const items = (batch?.transactions ?? [])
+    .flatMap((transaction, order) => {
+      const decision = batch?.decisions[transaction.id];
+      return decision ? [{ transaction, decision, order }] : [];
+    })
+    .filter(({ transaction, decision }) =>
+      transaction.batchId === query.batchId
+      && (query.status ? decision.status === query.status : decision.status !== "AUTO_PASS"),
+    )
+    .sort((left, right) => {
+      const leftRank = left.decision.status === "HIGH_RISK" ? 0 : 1;
+      const rightRank = right.decision.status === "HIGH_RISK" ? 0 : 1;
+      return leftRank - rightRank || left.order - right.order;
+    });
+  const totalItems = items.length;
+  const offset = (page - 1) * pageSize;
+  return {
+    items: items.slice(offset, offset + pageSize).map(({ transaction, decision }) => ({ transaction, decision })),
+    page,
+    pageSize,
+    totalItems,
+    totalPages: totalItems === 0 ? 0 : Math.ceil(totalItems / pageSize),
+    queryMs: performance.now() - startedAt,
+  };
 }
 
 export async function getBatchSummary(target?: PersistenceTarget) {
