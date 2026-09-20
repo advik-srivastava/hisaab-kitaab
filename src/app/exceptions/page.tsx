@@ -122,13 +122,13 @@ export default function ExceptionsPage() {
             Review flagged transactions before approval.
           </p>
         </div>
-        <div className="flex bg-panel p-1 rounded-xl border border-panel-border shadow-inner">
+        <div className="flex bg-slate-100/50 p-1 rounded-xl border border-panel-border shadow-sm">
           <button
             onClick={() => selectFilter("All")}
             className={`px-5 py-2.5 text-sm font-bold rounded-lg transition-all duration-[180ms] ease-[cubic-bezier(.22,1,.36,1)] ${
               filter === "All"
-                ? "bg-brand-primary/20 text-brand-primary shadow-[inset_0_0_10px_rgba(59,130,246,0.2)]"
-                : "text-text-muted hover:text-text-primary hover:bg-panel-hover"
+                ? "bg-white text-brand-primary shadow-sm ring-1 ring-black/5"
+                : "text-text-muted hover:text-text-primary hover:bg-black/5"
             }`}
           >
             All
@@ -137,8 +137,8 @@ export default function ExceptionsPage() {
             onClick={() => selectFilter("HIGH_RISK")}
             className={`px-5 py-2.5 text-sm font-bold rounded-lg transition-all duration-[180ms] ease-[cubic-bezier(.22,1,.36,1)] ${
               filter === "HIGH_RISK"
-                ? "bg-status-danger-bg text-status-danger-text shadow-[inset_0_0_10px_rgba(239,68,68,0.15)]"
-                : "text-text-muted hover:text-text-primary hover:bg-panel-hover"
+                ? "bg-status-danger-bg text-status-danger-text shadow-sm ring-1 ring-status-danger-border/50"
+                : "text-text-muted hover:text-text-primary hover:bg-black/5"
             }`}
           >
             High Risk
@@ -147,8 +147,8 @@ export default function ExceptionsPage() {
             onClick={() => selectFilter("REVIEW")}
             className={`px-5 py-2.5 text-sm font-bold rounded-lg transition-all duration-[180ms] ease-[cubic-bezier(.22,1,.36,1)] ${
               filter === "REVIEW"
-                ? "bg-status-warning-bg text-status-warning-text shadow-[inset_0_0_10px_rgba(245,158,11,0.15)]"
-                : "text-text-muted hover:text-text-primary hover:bg-panel-hover"
+                ? "bg-status-warning-bg text-status-warning-text shadow-sm ring-1 ring-status-warning-border/50"
+                : "text-text-muted hover:text-text-primary hover:bg-black/5"
             }`}
           >
             Review
@@ -182,9 +182,9 @@ export default function ExceptionsPage() {
                     <td className="table-cell font-semibold text-text-secondary max-w-[150px] truncate" title={t.vendorName || undefined}>
                       {t.vendorName || "-"}
                     </td>
-                    <td className="table-cell font-bold text-text-primary text-right">
+                    <td className="table-cell font-heading font-semibold text-text-primary text-right text-base">
                       {typeof t.amount === "number" && Number.isFinite(t.amount)
-                        ? <span className="bg-panel px-3 py-1.5 rounded-lg border border-panel-border shadow-inner">{`₹${t.amount.toLocaleString()}`}</span>
+                        ? `₹${t.amount.toLocaleString()}`
                         : "-"}
                     </td>
                     <td className="table-cell text-text-muted max-w-xs truncate font-medium">
@@ -193,7 +193,7 @@ export default function ExceptionsPage() {
                     <td className="table-cell text-right">
                       <Link
                         href={`/exceptions/${t.id}`}
-                        className="inline-flex items-center gap-2 text-brand-primary font-bold hover:text-white hover:border-brand-primary bg-brand-primary/10 hover:bg-brand-primary px-4 py-2 rounded-lg transition-all duration-300 border border-brand-primary/20 hover:shadow-[0_0_15px_var(--color-brand-glow)]"
+                        className="inline-flex items-center gap-2 text-brand-primary font-bold hover:text-white hover:border-brand-primary bg-brand-primary/5 hover:bg-brand-primary px-4 py-2 rounded-lg transition-all duration-[180ms] border border-brand-primary/20 hover:shadow-md"
                       >
                         Review
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -222,7 +222,7 @@ export default function ExceptionsPage() {
             </tbody>
           </table>
         </div>
-        <div className="flex items-center justify-between border-t border-panel-border px-6 py-4 bg-black/20">
+        <div className="flex items-center justify-between border-t border-panel-border px-6 py-4 bg-slate-50/50">
           <button
             type="button"
             onClick={() => selectPage(Math.max(1, result.page - 1))}

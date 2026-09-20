@@ -85,35 +85,34 @@ export default function UploadPage() {
 
   return (
     <div className="max-w-3xl mx-auto mt-12 mb-20 relative z-10">
-      <div className="text-center mb-10">
-        <h1 className="text-3xl font-bold text-text-primary tracking-tight">
-          Upload Invoice Batch
+      <div className="text-center mb-12">
+        <h1 className="text-4xl font-heading font-bold text-text-primary tracking-tight mb-4">
+          Invoice Batch Analysis
         </h1>
-        <p className="mt-3 text-base text-text-secondary max-w-xl mx-auto">
-          Upload a Finance batch (CSV or XLSX) and let <span className="font-semibold text-text-primary">hisaab<span className="text-brand-primary">किताब</span></span> analyze it for policy exceptions and potential duplicates.
+        <p className="text-lg text-text-secondary max-w-2xl mx-auto">
+          Securely process your Finance batch (CSV or XLSX) to instantly identify policy exceptions and duplicate transactions.
         </p>
       </div>
 
-      <div className="card p-8 sm:p-12 text-center relative overflow-hidden">
-        {/* Glow effect inside card */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-32 bg-brand-primary/10 blur-[80px] pointer-events-none"></div>
-
+      <div className="card p-8 sm:p-14 text-center relative overflow-hidden bg-white shadow-xl shadow-brand-primary/5 border-panel-border/80">
         <div className="max-w-lg mx-auto relative z-10">
           <div
-            className={`flex justify-center rounded-2xl border-2 border-dashed px-6 py-12 transition-all duration-[240ms] ease-[cubic-bezier(.22,1,.36,1)] ${
-              isProcessing ? "border-panel-border bg-panel opacity-50 cursor-not-allowed" : "border-panel-border/80 hover:border-brand-primary/50 hover:bg-brand-primary/5 hover:shadow-[0_0_30px_rgba(59,130,246,0.1)] cursor-pointer"
+            className={`flex flex-col items-center justify-center rounded-2xl border-2 border-dashed px-8 py-16 transition-all duration-[240ms] ease-[cubic-bezier(.22,1,.36,1)] ${
+              isProcessing 
+                ? "border-panel-border bg-slate-50/50 opacity-60 cursor-not-allowed" 
+                : "border-brand-primary/20 bg-brand-primary/[0.02] hover:border-brand-primary/50 hover:bg-brand-primary/[0.04] cursor-pointer"
             }`}
             onDrop={isProcessing ? undefined : handleDrop}
             onDragOver={isProcessing ? undefined : handleDragOver}
           >
-            <div className="text-center">
-              <div className="mx-auto w-16 h-16 mb-4 flex items-center justify-center rounded-full bg-panel border border-panel-border shadow-lg">
+            <div className="text-center flex flex-col items-center">
+              <div className="mb-6 flex items-center justify-center rounded-full bg-white shadow-sm border border-brand-primary/10 p-4">
                 <svg
-                  className="h-8 w-8 text-brand-primary"
+                  className="h-10 w-10 text-brand-primary"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
-                  strokeWidth="2"
+                  strokeWidth="1.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 >
@@ -122,12 +121,12 @@ export default function UploadPage() {
                   <line x1="12" y1="3" x2="12" y2="15" />
                 </svg>
               </div>
-              <div className="mt-4 flex text-sm leading-6 text-text-secondary justify-center">
+              <div className="flex text-base leading-6 text-text-primary font-medium justify-center items-center gap-1">
                 <label
                   htmlFor="file-upload"
-                  className="relative cursor-pointer rounded-md font-semibold text-brand-primary hover:text-blue-400 focus-within:outline-none transition-colors"
+                  className="relative cursor-pointer rounded-md font-bold text-brand-primary hover:text-brand-primary/80 focus-within:outline-none transition-colors"
                 >
-                  <span>Upload a file</span>
+                  <span>Select a file</span>
                   <input
                     id="file-upload"
                     name="file-upload"
@@ -138,10 +137,10 @@ export default function UploadPage() {
                     onChange={handleFileChange}
                   />
                 </label>
-                <p className="pl-1">or drag and drop</p>
+                <p>or drag and drop it here</p>
               </div>
-              <p className="text-xs leading-5 text-text-muted mt-2">
-                CSV or XLSX up to 50MB
+              <p className="text-sm text-text-secondary mt-3">
+                Supports CSV or XLSX up to 50MB
               </p>
             </div>
           </div>
