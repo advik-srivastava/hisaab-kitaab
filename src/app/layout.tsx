@@ -14,8 +14,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "hisaabकिताब",
-  description: "Review exceptions. Not every invoice.",
+  title: {
+    template: "%s | hisaabकिताब",
+    default: "hisaabकिताब",
+  },
+  description: "Accounts-payable exception management for faster, evidence-based Finance review.",
 };
 
 export default function RootLayout({
@@ -26,9 +29,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} dark`}
     >
-      <body className="font-sans text-slate-900 bg-slate-50">
+      <body className="font-sans">
         <AppShell>{children}</AppShell>
       </body>
     </html>

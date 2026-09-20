@@ -1,1 +1,82 @@
 @import "tailwindcss";
+
+@theme {
+  --color-canvas: #050505;
+  --color-panel: #0a0a0a;
+  --color-panel-hover: #121212;
+  --color-panel-border: rgba(255, 255, 255, 0.1);
+  --color-panel-border-hover: rgba(255, 255, 255, 0.2);
+  
+  --color-brand-primary: #3b82f6;
+  --color-brand-glow: rgba(59, 130, 246, 0.4);
+
+  --color-text-primary: #f8fafc;
+  --color-text-secondary: #94a3b8;
+  --color-text-muted: #475569;
+
+  --color-status-success-bg: rgba(16, 185, 129, 0.1);
+  --color-status-success-text: #34d399;
+  --color-status-success-border: rgba(16, 185, 129, 0.2);
+
+  --color-status-warning-bg: rgba(245, 158, 11, 0.1);
+  --color-status-warning-text: #fbbf24;
+  --color-status-warning-border: rgba(245, 158, 11, 0.2);
+
+  --color-status-danger-bg: rgba(239, 68, 68, 0.1);
+  --color-status-danger-text: #f87171;
+  --color-status-danger-border: rgba(239, 68, 68, 0.2);
+}
+
+@layer base {
+  body {
+    @apply bg-canvas text-text-primary antialiased;
+  }
+  
+  /* Focus States */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-brand-primary ring-offset-2 ring-offset-canvas rounded-[inherit];
+  }
+
+  /* Reduced Motion */
+  @media (prefers-reduced-motion: reduce) {
+    *, ::before, ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition-all duration-[180ms] ease-[cubic-bezier(.22,1,.36,1)] hover:bg-blue-500 hover:shadow-[0_0_15px_var(--color-brand-glow)] active:scale-95;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center rounded-lg bg-panel px-5 py-2.5 text-sm font-semibold text-text-primary border border-panel-border transition-all duration-[180ms] ease-[cubic-bezier(.22,1,.36,1)] hover:bg-panel-hover hover:border-panel-border-hover active:scale-95;
+  }
+  .card {
+    @apply bg-panel/50 border border-panel-border rounded-2xl shadow-2xl backdrop-blur-md transition-all duration-[320ms] ease-[cubic-bezier(.22,1,.36,1)];
+  }
+  .table-header {
+    @apply px-6 py-4 text-left text-xs font-semibold text-text-secondary uppercase tracking-wider border-b border-panel-border bg-black/40;
+  }
+  .table-cell {
+    @apply px-6 py-5 whitespace-nowrap text-sm text-text-primary border-b border-panel-border/30;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--color-panel-border);
+    border-radius: 10px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: var(--color-panel-border-hover);
+  }
+}

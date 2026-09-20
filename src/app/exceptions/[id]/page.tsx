@@ -101,7 +101,7 @@ export default function ExceptionDetailPage() {
       });
 
       if (result?.persistence.success) {
-        setMessage({ text: "Decision recorded.", type: "success" });
+        setMessage({ text: "Decision recorded successfully.", type: "success" });
         setNote("");
         await loadData();
       } else {
@@ -117,7 +117,7 @@ export default function ExceptionDetailPage() {
   if (!hasLoaded) {
     return (
       <div className="flex justify-center p-12">
-        <div className="text-slate-500">Loading exception details...</div>
+        <div className="text-text-secondary animate-pulse text-xs font-bold uppercase tracking-widest">Loading exception details...</div>
       </div>
     );
   }
@@ -125,94 +125,106 @@ export default function ExceptionDetailPage() {
   if (!transaction || !decision) {
     return (
       <div className="max-w-3xl mx-auto mt-10 text-center">
-        <h2 className="text-xl font-semibold text-slate-900 mb-2">
+        <h2 className="text-xl font-bold text-text-primary mb-3">
           {message?.type === "error" ? message.text : "Exception not found."}
         </h2>
-        <Link href="/exceptions" className="text-blue-600 hover:underline">
-          Return to the exception queue.
+        <Link href="/exceptions" className="text-brand-primary hover:underline font-semibold">
+          Return to the exception queue
         </Link>
       </div>
     );
   }
 
   const failedRules = ruleResults.filter(r => r.status === "FAIL");
-  const bestMatch = duplicateMatches[0]; // Assuming strongest is first, per core logic
+  const bestMatch = duplicateMatches[0];
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center space-x-2 text-sm text-slate-500">
-        <Link href="/exceptions" className="hover:text-slate-900">
+    <div className="space-y-8 relative z-10 pb-20">
+      <div className="flex items-center space-x-3 text-sm font-bold text-text-muted">
+        <Link href="/exceptions" className="hover:text-text-primary transition-colors">
           Exceptions
         </Link>
-        <span>/</span>
-        <span className="font-medium text-slate-900">{transaction.id}</span>
+        <span className="text-panel-border-hover">/</span>
+        <span className="text-text-primary bg-panel px-2.5 py-1 rounded-md border border-panel-border">{transaction.id}</span>
       </div>
 
-      <div className={`bg-white border-l-8 border-y border-r border-slate-200/75 p-6 sm:p-8 rounded-r-xl shadow-sm ${
-        decision.status === "HIGH_RISK" ? "border-l-red-500" :
-        decision.status === "REVIEW" ? "border-l-amber-400" :
-        "border-l-emerald-500"
+      <div className={`card overflow-hidden border-l-8 ${
+        decision.status === "HIGH_RISK" ? "border-l-red-500 shadow-[0_0_30px_rgba(239,68,68,0.15)]" :
+        decision.status === "REVIEW" ? "border-l-amber-500 shadow-[0_0_30px_rgba(245,158,11,0.15)]" :
+        "border-l-emerald-500 shadow-[0_0_30px_rgba(16,185,129,0.15)]"
       }`}>
-        <div className="flex flex-col">
-          <div className="flex items-center gap-3 mb-5">
-            <StatusBadge status={decision.status} />
-            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-              {decision.headline}
-            </h1>
+        <div className="p-6 sm:p-10 relative">
+          <div className="absolute top-0 right-0 p-6 opacity-10">
+            <svg className="w-48 h-48" fill="currentColor" viewBox="0 0 24 24">
+               <path d="M12 2L2 7l10 5 10-5-10-5zm0 7.5L3.5 7 12 2.75 20.5 7 12 9.5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+            </svg>
           </div>
-          <div className="flex flex-wrap gap-x-12 gap-y-4 text-sm bg-slate-50 border border-slate-200/60 rounded-lg p-5 w-fit">
-            <div className="flex flex-col gap-1.5">
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Invoice</span>
-              <span className="text-base font-semibold text-slate-900">{transaction.invoiceNumber || "-"}</span>
+          
+          <div className="relative z-10">
+            <div className="flex items-center gap-4 mb-6">
+              <StatusBadge status={decision.status} />
+              <h1 className="text-3xl font-extrabold text-text-primary tracking-tight">
+                {decision.headline}
+              </h1>
             </div>
-            <div className="flex flex-col gap-1.5">
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Vendor</span>
-              <span className="text-base font-semibold text-slate-900">{transaction.vendorName || "-"}</span>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Amount</span>
-              <span className="text-base font-semibold text-slate-900">
-                {typeof transaction.amount === "number" && Number.isFinite(transaction.amount)
-                  ? `₹${transaction.amount.toLocaleString()}`
-                  : "-"}
-              </span>
+            
+            <div className="flex flex-wrap gap-x-12 gap-y-6 text-sm bg-black/40 border border-panel-border rounded-xl p-6 w-fit backdrop-blur-md">
+              <div className="flex flex-col gap-2">
+                <span className="text-xs font-bold text-text-muted uppercase tracking-widest">Invoice</span>
+                <span className="text-lg font-bold text-text-primary">{transaction.invoiceNumber || "-"}</span>
+              </div>
+              <div className="flex flex-col gap-2 max-w-[150px] sm:max-w-[200px]">
+                <span className="text-xs font-bold text-text-muted uppercase tracking-widest">Vendor</span>
+                <span className="text-lg font-bold text-text-primary truncate" title={transaction.vendorName || undefined}>{transaction.vendorName || "-"}</span>
+              </div>
+              <div className="flex flex-col gap-2">
+                <span className="text-xs font-bold text-text-muted uppercase tracking-widest">Amount</span>
+                <span className="text-lg font-bold text-brand-primary">
+                  {typeof transaction.amount === "number" && Number.isFinite(transaction.amount)
+                    ? `₹${transaction.amount.toLocaleString()}`
+                    : "-"}
+                </span>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 space-y-8">
           
           {/* Policy Exceptions */}
           {failedRules.length > 0 && (
-            <div className="bg-white rounded-xl border border-slate-200/75 shadow-sm p-6 lg:p-8">
-              <h3 className="text-lg font-bold text-slate-900 mb-5 flex items-center gap-2">
-                <svg className="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
+            <div className="card p-6 lg:p-8">
+              <h3 className="text-xl font-bold text-text-primary mb-6 flex items-center gap-3">
+                <div className="bg-red-500/20 p-2 rounded-lg ring-1 ring-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.3)]">
+                  <svg className="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
                 Policy Violations
               </h3>
-              <ul className="space-y-4">
+              <ul className="space-y-5">
                 {failedRules.map((rule, idx) => (
-                  <li key={idx} className="bg-slate-50 rounded-lg p-5 border border-slate-200/60 shadow-sm">
-                    <div className="flex justify-between items-start mb-3">
-                      <span className="text-base font-semibold text-slate-900">{rule.ruleName}</span>
-                      <span className={`text-xs px-2.5 py-1 rounded-md font-semibold tracking-wide uppercase ${
-                        rule.severity === "HIGH" ? "bg-red-100 text-red-800 ring-1 ring-inset ring-red-600/20" : "bg-amber-100 text-amber-800 ring-1 ring-inset ring-amber-600/20"
+                  <li key={idx} className="bg-black/40 rounded-xl p-6 border border-panel-border shadow-inner relative overflow-hidden">
+                    <div className={`absolute left-0 top-0 w-1 h-full ${rule.severity === "HIGH" ? "bg-red-500" : "bg-amber-500"}`}></div>
+                    <div className="flex justify-between items-start mb-4">
+                      <span className="text-lg font-bold text-text-primary">{rule.ruleName}</span>
+                      <span className={`text-xs px-3 py-1 rounded-md font-extrabold tracking-widest uppercase shadow-sm ${
+                        rule.severity === "HIGH" ? "bg-red-500/20 text-red-400 border border-red-500/30" : "bg-amber-500/20 text-amber-400 border border-amber-500/30"
                       }`}>
                         {rule.severity}
                       </span>
                     </div>
-                    <p className="text-sm text-slate-700 leading-relaxed mb-4">{rule.explanation}</p>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="bg-white border border-slate-200 rounded-md p-3 shadow-sm">
-                        <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Expected Limit</div>
-                        <div className="font-semibold text-slate-700">{String(rule.expectedValue)}</div>
+                    <p className="text-sm text-text-secondary leading-relaxed mb-6">{rule.explanation}</p>
+                    <div className="grid grid-cols-2 gap-5">
+                      <div className="bg-panel border border-panel-border rounded-lg p-4 shadow-sm">
+                        <div className="text-xs font-bold text-text-muted uppercase tracking-widest mb-1.5">Expected Limit</div>
+                        <div className="font-bold text-text-primary">{String(rule.expectedValue)}</div>
                       </div>
-                      <div className="bg-red-50 border border-red-100 rounded-md p-3 shadow-sm">
-                        <div className="text-xs font-bold text-red-700 uppercase tracking-wider mb-1">Actual Value</div>
-                        <div className="font-semibold text-red-900">{String(rule.actualValue)}</div>
+                      <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 shadow-[inset_0_0_15px_rgba(239,68,68,0.05)]">
+                        <div className="text-xs font-bold text-red-400 uppercase tracking-widest mb-1.5">Actual Value</div>
+                        <div className="font-bold text-red-400">{String(rule.actualValue)}</div>
                       </div>
                     </div>
                   </li>
@@ -223,129 +235,139 @@ export default function ExceptionDetailPage() {
 
           {/* Duplicate Evidence */}
           {bestMatch && matchedTransaction && (
-            <div className="bg-white rounded-xl border border-slate-200/75 shadow-sm overflow-hidden">
-              <div className="bg-slate-50 border-b border-slate-200/75 px-6 py-4 flex items-center justify-between">
-                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                  <svg className="w-5 h-5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                  </svg>
+            <div className="card overflow-hidden">
+              <div className="bg-black/60 border-b border-panel-border px-6 py-5 flex items-center justify-between backdrop-blur-md">
+                <h3 className="text-xl font-bold text-text-primary flex items-center gap-3">
+                  <div className="bg-amber-500/20 p-2 rounded-lg ring-1 ring-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.3)]">
+                    <svg className="w-5 h-5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                  </div>
                   Duplicate Candidate Comparison
                 </h3>
               </div>
-              <div className="flex flex-col sm:flex-row divide-y sm:divide-y-0 sm:divide-x divide-slate-200/75">
-                <div className="w-full sm:w-1/2 p-6 space-y-5 bg-white relative">
-                  <div className="absolute top-0 left-0 w-full h-1 bg-blue-500"></div>
-                  <h4 className="text-xs font-bold text-blue-600 uppercase tracking-wider mb-2">Current Record</h4>
+              
+              <div className="flex flex-col sm:flex-row divide-y sm:divide-y-0 sm:divide-x divide-panel-border">
+                {/* Current Record */}
+                <div className="w-full sm:w-1/2 p-6 sm:p-8 space-y-6 bg-black/20 relative">
+                  <div className="absolute top-0 left-0 w-full h-1 bg-brand-primary shadow-[0_0_10px_var(--color-brand-glow)]"></div>
+                  <h4 className="text-xs font-extrabold text-brand-primary uppercase tracking-widest mb-4">Current Record</h4>
                   
-                  <div>
-                    <div className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Invoice</div>
-                    <div className="text-base font-semibold text-slate-900">{transaction.invoiceNumber || "-"}</div>
+                  <div className="space-y-1">
+                    <div className="text-text-muted text-xs font-bold uppercase tracking-widest">Invoice</div>
+                    <div className="text-base font-bold text-text-primary truncate max-w-[150px] sm:max-w-xs" title={transaction.invoiceNumber || undefined}>{transaction.invoiceNumber || "-"}</div>
                   </div>
-                  <div>
-                    <div className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Vendor</div>
-                    <div className="text-base font-semibold text-slate-900">{transaction.vendorName || "-"}</div>
+                  <div className="space-y-1">
+                    <div className="text-text-muted text-xs font-bold uppercase tracking-widest">Vendor</div>
+                    <div className="text-base font-bold text-text-primary truncate max-w-[150px] sm:max-w-xs" title={transaction.vendorName || undefined}>{transaction.vendorName || "-"}</div>
                   </div>
-                  <div>
-                    <div className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Amount</div>
-                    <div className={`text-base font-bold py-0.5 px-2 -ml-2 rounded-md inline-block ${bestMatch.amountMatch ? "bg-amber-100 text-amber-900 ring-1 ring-inset ring-amber-600/20" : "text-slate-900"}`}>
+                  <div className="space-y-1">
+                    <div className="text-text-muted text-xs font-bold uppercase tracking-widest">Amount</div>
+                    <div className={`text-lg font-extrabold py-1 px-3 -ml-3 rounded-lg inline-block transition-colors ${bestMatch.amountMatch ? "bg-amber-500/20 text-amber-400 border border-amber-500/30" : "text-text-primary"}`}>
                       {typeof transaction.amount === "number" && Number.isFinite(transaction.amount)
                         ? `₹${transaction.amount.toLocaleString()}`
                         : "-"}
                     </div>
                   </div>
-                  <div>
-                    <div className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Invoice Date</div>
-                    <div className="text-base font-medium text-slate-900">{transaction.invoiceDate || "-"}</div>
+                  <div className="space-y-1">
+                    <div className="text-text-muted text-xs font-bold uppercase tracking-widest">Invoice Date</div>
+                    <div className="text-base font-bold text-text-primary">{transaction.invoiceDate || "-"}</div>
                   </div>
-                  <div>
-                    <div className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Transaction ID</div>
-                    <div className="text-sm font-medium text-slate-500">{transaction.id}</div>
+                  <div className="space-y-1 pt-2">
+                    <div className="text-text-muted text-[10px] font-bold uppercase tracking-widest">Transaction ID</div>
+                    <div className="text-xs font-mono text-text-muted bg-panel border border-panel-border px-2 py-1 rounded inline-block">{transaction.id}</div>
                   </div>
                 </div>
 
-                <div className="w-full sm:w-1/2 p-6 space-y-5 bg-slate-50/50 relative">
-                  <div className="absolute top-0 left-0 w-full h-1 bg-amber-400"></div>
-                  <h4 className="text-xs font-bold text-amber-700 uppercase tracking-wider mb-2">Matched Record</h4>
+                {/* Matched Record */}
+                <div className="w-full sm:w-1/2 p-6 sm:p-8 space-y-6 bg-amber-900/10 relative">
+                  <div className="absolute top-0 left-0 w-full h-1 bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]"></div>
+                  <h4 className="text-xs font-extrabold text-amber-500 uppercase tracking-widest mb-4">Matched Record</h4>
 
-                  <div>
-                    <div className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Invoice</div>
-                    <div className="text-base font-semibold text-slate-900">{matchedTransaction.invoiceNumber || "-"}</div>
+                  <div className="space-y-1">
+                    <div className="text-text-muted text-xs font-bold uppercase tracking-widest">Invoice</div>
+                    <div className="text-base font-bold text-text-primary truncate max-w-[150px] sm:max-w-xs" title={matchedTransaction.invoiceNumber || undefined}>{matchedTransaction.invoiceNumber || "-"}</div>
                   </div>
-                  <div>
-                    <div className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Vendor</div>
-                    <div className="text-base font-semibold text-slate-900">{matchedTransaction.vendorName || "-"}</div>
+                  <div className="space-y-1">
+                    <div className="text-text-muted text-xs font-bold uppercase tracking-widest">Vendor</div>
+                    <div className="text-base font-bold text-text-primary truncate max-w-[150px] sm:max-w-xs" title={matchedTransaction.vendorName || undefined}>{matchedTransaction.vendorName || "-"}</div>
                   </div>
-                  <div>
-                    <div className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Amount</div>
-                    <div className={`text-base font-bold py-0.5 px-2 -ml-2 rounded-md inline-block ${bestMatch.amountMatch ? "bg-amber-100 text-amber-900 ring-1 ring-inset ring-amber-600/20" : "text-slate-900"}`}>
+                  <div className="space-y-1">
+                    <div className="text-text-muted text-xs font-bold uppercase tracking-widest">Amount</div>
+                    <div className={`text-lg font-extrabold py-1 px-3 -ml-3 rounded-lg inline-block transition-colors ${bestMatch.amountMatch ? "bg-amber-500/20 text-amber-400 border border-amber-500/30" : "text-text-primary"}`}>
                       {typeof matchedTransaction.amount === "number" && Number.isFinite(matchedTransaction.amount)
                         ? `₹${matchedTransaction.amount.toLocaleString()}`
                         : "-"}
                     </div>
                   </div>
-                  <div>
-                    <div className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Invoice Date</div>
-                    <div className="text-base font-medium text-slate-900">{matchedTransaction.invoiceDate || "-"}</div>
+                  <div className="space-y-1">
+                    <div className="text-text-muted text-xs font-bold uppercase tracking-widest">Invoice Date</div>
+                    <div className="text-base font-bold text-text-primary">{matchedTransaction.invoiceDate || "-"}</div>
                   </div>
-                  <div>
-                    <div className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Transaction ID</div>
-                    <div className="text-sm font-medium text-slate-500">{matchedTransaction.id}</div>
+                  <div className="space-y-1 pt-2">
+                    <div className="text-text-muted text-[10px] font-bold uppercase tracking-widest">Transaction ID</div>
+                    <div className="text-xs font-mono text-text-muted bg-panel border border-panel-border px-2 py-1 rounded inline-block">{matchedTransaction.id}</div>
                   </div>
                 </div>
               </div>
-            </div>
-          )}
-
-          {/* Why this was flagged */}
-          {bestMatch && bestMatch.evidence.length > 0 && (
-            <div className="bg-white rounded-xl border border-slate-200/75 shadow-sm p-6 lg:p-8">
-              <h3 className="text-lg font-bold text-slate-900 mb-5">
-                Match Evidence
-              </h3>
-              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-2">
-                {bestMatch.evidence.map((ev, idx) => (
-                  <li key={idx} className="flex items-center gap-3 text-sm font-medium text-slate-700 bg-slate-50 px-4 py-2.5 rounded-lg border border-slate-100">
-                    <svg className="w-5 h-5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                    {ev}
-                  </li>
-                ))}
-                {bestMatch.vendorSimilarity !== null && bestMatch.matchType !== "EXACT" && (
-                   <li className="flex items-center gap-3 text-sm font-medium text-slate-700 bg-slate-50 px-4 py-2.5 rounded-lg border border-slate-100">
-                     <svg className="w-5 h-5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                     Vendor string similarity: {bestMatch.vendorSimilarity}%
-                   </li>
-                )}
-              </ul>
+              
+              {/* Evidence details */}
+              {bestMatch.evidence.length > 0 && (
+                <div className="bg-black/40 border-t border-panel-border p-6 sm:p-8">
+                  <h4 className="text-sm font-bold text-text-primary uppercase tracking-widest mb-4">Algorithm Evidence</h4>
+                  <ul className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {bestMatch.evidence.map((ev, idx) => (
+                      <li key={idx} className="flex items-center gap-3 text-sm font-semibold text-text-secondary bg-panel px-4 py-3 rounded-xl border border-panel-border shadow-inner">
+                        <div className="bg-emerald-500/20 rounded-full p-1 border border-emerald-500/30 flex-shrink-0">
+                          <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                        {ev}
+                      </li>
+                    ))}
+                    {bestMatch.vendorSimilarity !== null && bestMatch.matchType !== "EXACT" && (
+                       <li className="flex items-center gap-3 text-sm font-semibold text-text-secondary bg-panel px-4 py-3 rounded-xl border border-panel-border shadow-inner">
+                         <div className="bg-emerald-500/20 rounded-full p-1 border border-emerald-500/30 flex-shrink-0">
+                           <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                         </div>
+                         Vendor similarity: <span className="text-text-primary font-bold">{bestMatch.vendorSimilarity}%</span>
+                       </li>
+                    )}
+                  </ul>
+                </div>
+              )}
             </div>
           )}
 
           {decision.recommendedAction && (
-            <div className="bg-blue-50/80 border border-blue-200/75 rounded-xl p-5 flex gap-3.5 shadow-sm">
-              <div className="mt-0.5">
-                <svg className="w-5 h-5 text-blue-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <div className="bg-brand-primary/10 border border-brand-primary/30 rounded-2xl p-6 flex gap-4 shadow-[0_0_30px_rgba(59,130,246,0.15)] relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-4 opacity-5">
+                 <svg className="w-32 h-32" fill="currentColor" viewBox="0 0 24 24"><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              </div>
+              <div className="bg-brand-primary/20 p-2.5 rounded-xl border border-brand-primary/40 flex-shrink-0 self-start z-10">
+                <svg className="w-6 h-6 text-brand-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <div>
-                <h4 className="text-sm font-bold text-blue-900 tracking-wide uppercase">Recommended action</h4>
-                <p className="text-base font-medium text-blue-900/90 mt-1">
+              <div className="z-10">
+                <h4 className="text-sm font-extrabold text-brand-primary tracking-widest uppercase">System Recommendation</h4>
+                <p className="text-lg font-medium text-text-primary mt-2">
                   {decision.recommendedAction}
                 </p>
               </div>
             </div>
           )}
 
-          <div className="bg-white rounded-xl border border-slate-200/75 shadow-sm p-6 lg:p-8 mt-6">
-            <h3 className="text-lg font-bold text-slate-900 mb-5">
-              Reviewer Action
+          <div className="card p-6 lg:p-8">
+            <h3 className="text-xl font-bold text-text-primary mb-6">
+              Reviewer Decision
             </h3>
             
-            <div className="mb-6">
-              <label htmlFor="note" className="block text-sm font-semibold text-slate-700 mb-2">
+            <div className="mb-8">
+              <label htmlFor="note" className="block text-sm font-bold text-text-secondary uppercase tracking-widest mb-3">
                 Audit Note (Optional)
               </label>
               <input
@@ -353,8 +375,8 @@ export default function ExceptionDetailPage() {
                 id="note"
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                placeholder="Add context to your decision for the audit log..."
-                className="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                placeholder="Provide context for the audit log..."
+                className="w-full rounded-xl bg-black/40 border border-panel-border px-5 py-4 text-sm font-medium text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary transition-all shadow-inner"
                 disabled={isProcessing}
               />
             </div>
@@ -363,35 +385,37 @@ export default function ExceptionDetailPage() {
               <button
                 onClick={() => handleAction("APPROVE")}
                 disabled={isProcessing}
-                className="flex-1 bg-emerald-600 hover:bg-emerald-700 focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:opacity-50 text-white font-semibold py-3 px-4 rounded-lg shadow-sm transition-all"
+                className="flex-1 bg-emerald-500 hover:bg-emerald-600 focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-panel disabled:opacity-50 text-white font-extrabold py-4 px-4 rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all uppercase tracking-widest active:scale-95"
               >
-                APPROVE
+                Approve
               </button>
               <button
                 onClick={() => handleAction("REJECT")}
                 disabled={isProcessing}
-                className="flex-1 bg-red-600 hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50 text-white font-semibold py-3 px-4 rounded-lg shadow-sm transition-all"
+                className="flex-1 bg-red-500 hover:bg-red-600 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-panel disabled:opacity-50 text-white font-extrabold py-4 px-4 rounded-xl shadow-[0_0_20px_rgba(239,68,68,0.3)] transition-all uppercase tracking-widest active:scale-95"
               >
-                REJECT
+                Reject
               </button>
               <button
                 onClick={() => handleAction("MARK_NOT_DUPLICATE")}
                 disabled={isProcessing}
-                className="sm:w-auto bg-white hover:bg-slate-50 focus:ring-2 focus:ring-slate-200 focus:ring-offset-2 disabled:opacity-50 text-slate-700 border border-slate-300 font-semibold py-3 px-6 rounded-lg shadow-sm transition-all"
+                className="sm:w-auto bg-panel hover:bg-panel-hover focus:ring-2 focus:ring-text-muted focus:ring-offset-2 focus:ring-offset-panel disabled:opacity-50 text-text-primary border border-panel-border font-extrabold py-4 px-8 rounded-xl transition-all uppercase tracking-widest active:scale-95"
               >
-                MARK NOT DUPLICATE
+                Not Duplicate
               </button>
             </div>
             
             {message && (
-              <div className={`mt-5 p-3 rounded-md text-sm font-bold flex items-center gap-2 ${message.type === "success" ? "bg-emerald-50 text-emerald-800 border border-emerald-200" : "bg-red-50 text-red-800 border border-red-200"}`}>
-                <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  {message.type === "success" ? (
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  ) : (
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  )}
-                </svg>
+              <div className={`mt-6 p-4 rounded-xl text-sm font-bold flex items-center gap-3 ${message.type === "success" ? "bg-status-success-bg text-status-success-text border border-status-success-border shadow-[0_0_20px_rgba(16,185,129,0.1)]" : "bg-status-danger-bg text-status-danger-text border border-status-danger-border shadow-[0_0_20px_rgba(239,68,68,0.1)]"}`}>
+                <div className={`p-1 rounded-full ${message.type === "success" ? "bg-status-success-border text-status-success-text" : "bg-status-danger-border text-status-danger-text"}`}>
+                  <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                    {message.type === "success" ? (
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    ) : (
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    )}
+                  </svg>
+                </div>
                 {message.text}
               </div>
             )}
@@ -399,8 +423,11 @@ export default function ExceptionDetailPage() {
         </div>
 
         <div className="lg:col-span-1">
-          <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-6 sticky top-6">
-            <h3 className="text-base font-semibold text-slate-900 mb-6">
+          <div className="card p-6 sticky top-24">
+            <h3 className="text-sm font-bold text-text-muted uppercase tracking-widest mb-8 flex items-center gap-2">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
               Audit History
             </h3>
             <AuditTimeline events={auditEvents} />

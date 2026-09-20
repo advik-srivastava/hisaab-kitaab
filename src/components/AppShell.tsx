@@ -2,57 +2,102 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import Image from "next/image";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   const navigation = [
-    { name: "Upload", href: "/upload" },
-    { name: "Dashboard", href: "/dashboard" },
-    { name: "Exceptions", href: "/exceptions" },
+    { name: "Upload", href: "/upload", icon: "M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" },
+    { name: "Dashboard", href: "/dashboard", icon: "M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" },
+    { name: "Exceptions", href: "/exceptions", icon: "M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" },
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
-      {/* Sidebar / Header */}
-      <nav className="w-full md:w-64 bg-white border-b md:border-b-0 md:border-r border-slate-200 flex-shrink-0">
-        <div className="p-6 mb-2">
-          <Link href="/dashboard" className="flex items-center gap-2 mb-2 hover:opacity-90 transition-opacity">
-            <span className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-1.5">
-              <svg className="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              hisaab<span className="text-blue-600">किताब</span>
-            </span>
+    <div className="min-h-screen flex flex-col md:flex-row bg-canvas overflow-hidden">
+      {/* Sidebar */}
+      <nav className="w-full md:w-72 bg-panel border-b md:border-b-0 md:border-r border-panel-border flex flex-col z-20 shrink-0">
+        <div className="p-6 md:p-8">
+          <Link href="/dashboard" className="block hover:opacity-80 transition-opacity max-w-[160px]">
+            <Image 
+              src="/brand/hisaab-kitaab-logo.png" 
+              alt="hisaabकिताब" 
+              width={160} 
+              height={120} 
+              className="w-full h-auto"
+              priority
+            />
           </Link>
-          <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+          <p className="mt-4 text-[10px] font-bold text-text-secondary uppercase tracking-widest">
             Review exceptions. Not every invoice.
           </p>
         </div>
-        <div className="px-4 py-2 flex flex-row md:flex-col gap-1 overflow-x-auto">
+        
+        <div className="px-4 py-4 flex-1 flex flex-row md:flex-col gap-2 overflow-x-auto custom-scrollbar">
           {navigation.map((item) => {
             const isActive = pathname.startsWith(item.href);
             return (
               <Link
                 key={item.name}
                 href={item.href}
-                className={`px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 flex items-center ${
+                className={`px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-[180ms] ease-[cubic-bezier(.22,1,.36,1)] flex items-center gap-3 ${
                   isActive
-                    ? "bg-blue-50/80 text-blue-700 shadow-sm ring-1 ring-blue-700/10"
-                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                    ? "bg-brand-primary/10 text-brand-primary ring-1 ring-brand-primary/30 shadow-[inset_0_0_20px_rgba(59,130,246,0.1)]"
+                    : "text-text-secondary hover:bg-panel-hover hover:text-text-primary"
                 }`}
               >
+                <svg className="w-5 h-5 opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
+                </svg>
                 {item.name}
               </Link>
             );
           })}
         </div>
+        
+        {/* User profile / context area at bottom of sidebar */}
+        <div className="p-6 border-t border-panel-border mt-auto hidden md:flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-panel-hover border border-panel-border flex items-center justify-center text-text-primary font-bold">
+            A
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-text-primary">Advik</p>
+            <p className="text-xs text-text-secondary">Finance Controller</p>
+          </div>
+        </div>
       </nav>
 
-      {/* Main Content */}
-      <main className="flex-1 p-6 md:p-10 overflow-y-auto">
-        <div className="max-w-7xl mx-auto">{children}</div>
-      </main>
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col h-screen overflow-hidden relative">
+        {/* Top Utility / Context Bar */}
+        <header className="h-16 border-b border-panel-border bg-canvas/80 backdrop-blur-xl flex items-center justify-between px-6 md:px-10 shrink-0 z-10">
+          <div className="flex items-center gap-4">
+             <div className="text-xs font-medium text-text-secondary px-2.5 py-1 rounded-full border border-panel-border bg-panel">
+               Environment: Production
+             </div>
+          </div>
+          <div className="flex items-center gap-4">
+             <button className="text-text-secondary hover:text-text-primary transition-colors">
+               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+               </svg>
+             </button>
+          </div>
+        </header>
+
+        {/* Dynamic Canvas Background Effect */}
+        <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
+          <div className="absolute -top-[20%] -right-[10%] w-[50%] h-[50%] rounded-full bg-brand-primary/10 blur-[120px]" />
+          <div className="absolute bottom-[10%] -left-[10%] w-[40%] h-[40%] rounded-full bg-brand-primary/5 blur-[100px]" />
+        </div>
+
+        {/* Page Content */}
+        <main className="flex-1 overflow-y-auto z-10 relative custom-scrollbar">
+          <div className="p-6 md:p-10 max-w-7xl mx-auto w-full">
+            {children}
+          </div>
+        </main>
+      </div>
     </div>
   );
 }

@@ -84,44 +84,48 @@ export default function UploadPage() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto mt-12 mb-20">
+    <div className="max-w-3xl mx-auto mt-12 mb-20 relative z-10">
       <div className="text-center mb-10">
-        <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
+        <h1 className="text-3xl font-bold text-text-primary tracking-tight">
           Upload Invoice Batch
         </h1>
-        <p className="mt-3 text-base text-slate-600 max-w-xl mx-auto">
-          Upload a Finance batch (CSV or XLSX) and let <span className="font-semibold text-slate-700">hisaab<span className="text-blue-600">किताब</span></span> analyze it for policy exceptions and potential duplicates.
+        <p className="mt-3 text-base text-text-secondary max-w-xl mx-auto">
+          Upload a Finance batch (CSV or XLSX) and let <span className="font-semibold text-text-primary">hisaab<span className="text-brand-primary">किताब</span></span> analyze it for policy exceptions and potential duplicates.
         </p>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-xl p-8 sm:p-12 shadow-sm text-center">
-        <div className="max-w-lg mx-auto">
+      <div className="card p-8 sm:p-12 text-center relative overflow-hidden">
+        {/* Glow effect inside card */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-32 bg-brand-primary/10 blur-[80px] pointer-events-none"></div>
+
+        <div className="max-w-lg mx-auto relative z-10">
           <div
-            className={`flex justify-center rounded-xl border-2 border-dashed px-6 py-12 transition-colors duration-200 ${
-              isProcessing ? "border-slate-200 bg-slate-50 opacity-50 cursor-not-allowed" : "border-slate-300 hover:border-blue-400 hover:bg-blue-50/50"
+            className={`flex justify-center rounded-2xl border-2 border-dashed px-6 py-12 transition-all duration-[240ms] ease-[cubic-bezier(.22,1,.36,1)] ${
+              isProcessing ? "border-panel-border bg-panel opacity-50 cursor-not-allowed" : "border-panel-border/80 hover:border-brand-primary/50 hover:bg-brand-primary/5 hover:shadow-[0_0_30px_rgba(59,130,246,0.1)] cursor-pointer"
             }`}
             onDrop={isProcessing ? undefined : handleDrop}
             onDragOver={isProcessing ? undefined : handleDragOver}
           >
             <div className="text-center">
-              <svg
-                className="mx-auto h-12 w-12 text-slate-300"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-                aria-hidden="true"
-                width="48"
-                height="48"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M1.5 6a2.25 2.25 0 012.25-2.25h16.5A2.25 2.25 0 0122.5 6v12a2.25 2.25 0 01-2.25 2.25H3.75A2.25 2.25 0 011.5 18V6zM3 16.06V18c0 .414.336.75.75.75h16.5A.75.75 0 0021 18v-1.94l-2.69-2.689a1.5 1.5 0 00-2.12 0l-.88.879.97.97a.75.75 0 11-1.06 1.06l-5.16-5.159a1.5 1.5 0 00-2.12 0L3 16.061zm10.125-7.81a1.125 1.125 0 112.25 0 1.125 1.125 0 01-2.25 0z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              <div className="mt-4 flex text-sm leading-6 text-slate-600 justify-center">
+              <div className="mx-auto w-16 h-16 mb-4 flex items-center justify-center rounded-full bg-panel border border-panel-border shadow-lg">
+                <svg
+                  className="h-8 w-8 text-brand-primary"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="17 8 12 3 7 8" />
+                  <line x1="12" y1="3" x2="12" y2="15" />
+                </svg>
+              </div>
+              <div className="mt-4 flex text-sm leading-6 text-text-secondary justify-center">
                 <label
                   htmlFor="file-upload"
-                  className="relative cursor-pointer rounded-md bg-white font-semibold text-blue-600 focus-within:outline-none focus-within:ring-2 focus-within:ring-blue-600 focus-within:ring-offset-2 hover:text-blue-500"
+                  className="relative cursor-pointer rounded-md font-semibold text-brand-primary hover:text-blue-400 focus-within:outline-none transition-colors"
                 >
                   <span>Upload a file</span>
                   <input
@@ -136,47 +140,47 @@ export default function UploadPage() {
                 </label>
                 <p className="pl-1">or drag and drop</p>
               </div>
-              <p className="text-xs leading-5 text-slate-500">
-                CSV or XLSX only
+              <p className="text-xs leading-5 text-text-muted mt-2">
+                CSV or XLSX up to 50MB
               </p>
             </div>
           </div>
         </div>
 
         {files.length > 0 && (
-          <div className="mt-10 max-w-lg mx-auto text-left">
-            <h4 className="text-sm font-semibold text-slate-900 flex items-center justify-between">
+          <div className="mt-10 max-w-lg mx-auto text-left relative z-10">
+            <h4 className="text-sm font-semibold text-text-primary flex items-center justify-between">
               <span>Selected Files</span>
-              <span className="text-xs font-normal text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">{files.length} file{files.length !== 1 && 's'}</span>
+              <span className="text-xs font-bold text-brand-primary bg-brand-primary/10 border border-brand-primary/20 px-3 py-1 rounded-full">{files.length} file{files.length !== 1 && 's'}</span>
             </h4>
             <ul className="mt-4 space-y-3">
               {files.map((file, idx) => (
                 <li
                   key={idx}
-                  className="flex items-center justify-between bg-white px-4 py-3 rounded-lg border border-slate-200 shadow-sm"
+                  className="flex items-center justify-between bg-panel px-4 py-4 rounded-xl border border-panel-border hover:border-panel-border-hover transition-colors shadow-sm"
                 >
                   <div className="flex items-center">
                     <div
-                      className={`h-10 w-10 rounded flex items-center justify-center text-xs font-bold ${
+                      className={`h-12 w-12 rounded-lg flex items-center justify-center text-xs font-bold shadow-inner ${
                         file.name.endsWith(".csv")
-                          ? "bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20"
-                          : "bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20"
+                          ? "bg-status-success-bg text-status-success-text border border-status-success-border"
+                          : "bg-brand-primary/10 text-brand-primary border border-brand-primary/20"
                       }`}
                     >
                       {file.name.split(".").pop()?.toUpperCase()}
                     </div>
                     <div className="ml-4">
-                      <p className="text-sm font-medium text-slate-900 truncate w-48 sm:w-64">
+                      <p className="text-sm font-semibold text-text-primary truncate w-48 sm:w-64">
                         {file.name}
                       </p>
-                      <p className="text-xs text-slate-500 mt-0.5">
+                      <p className="text-xs text-text-secondary mt-1">
                         {(file.size / 1024).toFixed(1)} KB
                       </p>
                     </div>
                   </div>
                   <button
                     onClick={() => removeFile(idx)}
-                    className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-1.5 rounded-md transition-colors focus:outline-none"
+                    className="text-text-muted hover:text-status-danger-text hover:bg-status-danger-bg p-2 rounded-lg transition-colors focus:outline-none"
                     disabled={isProcessing}
                     aria-label="Remove file"
                   >
@@ -191,20 +195,20 @@ export default function UploadPage() {
         )}
 
         {error && (
-          <div className="mt-8 max-w-lg mx-auto bg-red-50 border border-red-200 text-red-800 px-5 py-4 rounded-lg text-sm text-left flex flex-col gap-3 shadow-sm">
+          <div className="mt-8 max-w-lg mx-auto bg-status-danger-bg border border-status-danger-border text-status-danger-text px-5 py-4 rounded-xl text-sm text-left flex flex-col gap-3 shadow-[0_0_20px_rgba(239,68,68,0.1)] relative z-10">
             <div className="flex items-start gap-3">
-              <svg className="w-5 h-5 text-red-600 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="w-5 h-5 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
               <div>
-                <p className="font-semibold text-red-900">{error.includes("successfully") ? "Partial Processing Complete" : "Processing Failed"}</p>
-                <p className="mt-1 text-red-700 leading-relaxed">{error}</p>
+                <p className="font-bold">{error.includes("successfully") ? "Partial Processing Complete" : "Processing Failed"}</p>
+                <p className="mt-1 opacity-90 leading-relaxed">{error}</p>
               </div>
             </div>
             {error.includes("successfully") && (
               <button
                 onClick={() => router.push("/dashboard")}
-                className="mt-1 ml-8 self-start inline-flex items-center gap-1.5 text-red-900 font-bold hover:text-red-700 transition-colors"
+                className="mt-1 ml-8 self-start inline-flex items-center gap-1.5 font-bold hover:opacity-80 transition-opacity"
               >
                 Continue to Dashboard
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -215,48 +219,37 @@ export default function UploadPage() {
           </div>
         )}
 
-        <div className="mt-12 flex flex-col items-center">
+        <div className="mt-12 flex flex-col items-center relative z-10">
           <button
             onClick={handleAnalyze}
             disabled={files.length === 0 || isProcessing}
-            className={`inline-flex items-center justify-center rounded-lg px-8 py-3.5 text-sm font-semibold text-white shadow-sm transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 w-full sm:w-auto min-w-[200px] ${
+            className={`btn-primary w-full sm:w-auto min-w-[240px] h-12 text-base ${
               files.length === 0
-                ? "bg-slate-300 cursor-not-allowed"
+                ? "opacity-50 cursor-not-allowed hover:shadow-none hover:bg-brand-primary"
                 : isProcessing
-                ? "bg-blue-600/90 cursor-wait"
-                : "bg-blue-600 hover:bg-blue-700 hover:shadow-md focus-visible:outline-blue-600"
+                ? "cursor-wait opacity-90 hover:shadow-[0_0_20px_var(--color-brand-glow)]"
+                : ""
             }`}
           >
             {isProcessing ? (
-              <>
-                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <div className="flex items-center gap-3">
+                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
                 {progressStage ? progressLabels[progressStage] : "Analyzing..."}
-              </>
+              </div>
             ) : (
               "Analyze Batch"
             )}
           </button>
           
-          <div className="mt-4 flex items-center justify-center gap-1.5 text-xs font-medium text-slate-500 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-200">
-            <svg
-              className="w-4 h-4 text-emerald-600"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              width="16"
-              height="16"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-              />
-            </svg>
-            Files are analyzed against configured Finance policies
+          <div className="mt-6 flex items-center justify-center gap-2 text-xs font-semibold text-text-secondary bg-panel border border-panel-border px-4 py-2 rounded-full">
+            <span className="flex h-2 w-2 relative">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-status-success-text opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-status-success-text"></span>
+            </span>
+            Worker ready for background processing
           </div>
         </div>
       </div>
