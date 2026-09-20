@@ -3,8 +3,11 @@ import type { BatchSummary, Decision } from "../../src/types/decisions";
 import type { DuplicateMatch } from "../../src/types/duplicates";
 import type { RuleResult } from "../../src/types/rules";
 import type { Transaction } from "../../src/types/transaction";
+import { DEFAULT_EXCEPTION_PAGE_SIZE } from "../../src/lib/storage";
 import type {
   BatchMetadata,
+  ExceptionsPageQuery,
+  ExceptionsPageResult,
   PersistedBatch,
   PersistenceAdapter,
   StorageWriteResult,
@@ -26,6 +29,7 @@ export class MemoryPersistence implements PersistenceAdapter {
   readonly decisions = new Map<string, Decision>();
   readonly reviews = new Map<string, StoredReviewAction[]>();
   readonly audits: AuditEvent[] = [];
+  getCurrentBatchCalls = 0;
 
   async getCurrentBatchMetadata() { return this.metadata; }
   async getBatchSummary(): Promise<BatchSummary | undefined> { return this.metadata?.batchSummary; }
@@ -41,6 +45,7 @@ export class MemoryPersistence implements PersistenceAdapter {
   async getAuditEventCount(batchId: string) { return this.audits.filter((event) => event.batchId === batchId).length; }
 
   async getCurrentBatch(): Promise<PersistedBatch | undefined> {
+    this.getCurrentBatchCalls += 1;
     if (!this.metadata) return undefined;
     return {
       ...this.metadata,
@@ -50,6 +55,36 @@ export class MemoryPersistence implements PersistenceAdapter {
       decisions: Object.fromEntries(this.decisions),
       reviewActions: Object.fromEntries(this.reviews),
       auditEvents: [...this.audits],
+    };
+  }
+
+  async getExceptionsPage(query: ExceptionsPageQuery): Promise<ExceptionsPageResult> {
+    const startedAt = performance.now();
+    const page = Math.max(1, Math.trunc(query.page ?? 1));
+    const pageSize = Math.max(1, Math.trunc(query.pageSize ?? DEFAULT_EXCEPTION_PAGE_SIZE));
+    const items = [...this.transactions.values()]
+      .flatMap((transaction, order) => {
+        const decision = this.decisions.get(transaction.id);
+        return decision ? [{ transaction, decision, order }] : [];
+      })
+      .filter(({ transaction, decision }) =>
+        transaction.batchId === query.batchId
+        && (query.status ? decision.status === query.status : decision.status !== "AUTO_PASS"),
+      )
+      .sort((left, right) => {
+        const leftRank = left.decision.status === "HIGH_RISK" ? 0 : 1;
+        const rightRank = right.decision.status === "HIGH_RISK" ? 0 : 1;
+        return leftRank - rightRank || left.order - right.order;
+      });
+    const totalItems = items.length;
+    const offset = (page - 1) * pageSize;
+    return {
+      items: items.slice(offset, offset + pageSize).map(({ transaction, decision }) => ({ transaction, decision })),
+      page,
+      pageSize,
+      totalItems,
+      totalPages: totalItems === 0 ? 0 : Math.ceil(totalItems / pageSize),
+      queryMs: performance.now() - startedAt,
     };
   }
 
@@ -88,5 +123,6 @@ export class MemoryPersistence implements PersistenceAdapter {
     this.decisions.clear();
     this.reviews.clear();
     this.audits.length = 0;
+    this.getCurrentBatchCalls = 0;
   }
 }

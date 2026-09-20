@@ -9,6 +9,29 @@ export const STORAGE_KEY = "hisaab-kitaab:v1";
 export const BATCH_MARKER_KEY = "hisaab-kitaab:current-batch";
 
 export type ReviewAction = "APPROVE" | "REJECT" | "MARK_NOT_DUPLICATE";
+export type ExceptionStatusFilter = "HIGH_RISK" | "REVIEW";
+export const DEFAULT_EXCEPTION_PAGE_SIZE = 50;
+
+export interface ExceptionsPageQuery {
+  batchId: string;
+  status?: ExceptionStatusFilter;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface ExceptionPageItem {
+  transaction: Transaction;
+  decision: Decision;
+}
+
+export interface ExceptionsPageResult {
+  items: ExceptionPageItem[];
+  page: number;
+  pageSize: number;
+  totalItems: number;
+  totalPages: number;
+  queryMs: number;
+}
 
 export interface StoredReviewAction {
   action: ReviewAction;
@@ -81,6 +104,7 @@ export interface BatchMetadata {
 export interface PersistenceAdapter {
   getCurrentBatchMetadata(): Promise<BatchMetadata | undefined>;
   getCurrentBatch(): Promise<PersistedBatch | undefined>;
+  getExceptionsPage(query: ExceptionsPageQuery): Promise<ExceptionsPageResult>;
   getBatchSummary(): Promise<BatchSummary | undefined>;
   getTransaction(transactionId: string): Promise<Transaction | undefined>;
   getTransactionsForBatch(batchId: string): Promise<Transaction[]>;
