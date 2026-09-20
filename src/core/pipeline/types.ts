@@ -18,11 +18,47 @@ export interface ProcessingMetrics {
   duplicateDetection: DuplicateDetectionMetrics;
 }
 
+export type ProcessingStage =
+  | "READING_FILES"
+  | "NORMALIZING"
+  | "EVALUATING_RULES"
+  | "CHECKING_DUPLICATES"
+  | "MAKING_DECISIONS"
+  | "SAVING_RESULTS"
+  | "COMPLETE";
+
+export interface ProcessingProgress {
+  stage: ProcessingStage;
+  processed?: number;
+  total?: number;
+}
+
+export interface AnalyzeBatchOptions {
+  referenceDate?: Date | string;
+  now?: () => Date;
+  onProgress?: (progress: ProcessingProgress) => void;
+}
+
 export interface ProcessBatchOptions {
   referenceDate?: Date | string;
   storage?: StorageLike;
   persistence?: PersistenceAdapter;
   now?: () => Date;
+}
+
+export interface BatchAnalysisResult {
+  batchId: string;
+  createdAt: string;
+  transactions: Transaction[];
+  ruleResults: Record<string, RuleResult[]>;
+  duplicatePairs: DuplicateMatch[];
+  duplicateMatches: Record<string, DuplicateMatch[]>;
+  decisions: Record<string, Decision>;
+  batchSummary: BatchSummary;
+  fileErrors: IngestionFileError[];
+  filesProcessed: number;
+  rowsProcessed: number;
+  processingMetrics: ProcessingMetrics;
 }
 
 export interface ProcessBatchResult {

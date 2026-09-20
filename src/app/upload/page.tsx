@@ -2,13 +2,25 @@
 
 import { useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { processBatch } from "@/core/pipeline";
+import type { ProcessingStage } from "@/core/pipeline";
+import { processBatchInWorker } from "@/lib/worker";
+
+const progressLabels: Partial<Record<ProcessingStage, string>> = {
+  READING_FILES: "Reading files...",
+  NORMALIZING: "Normalizing transactions...",
+  EVALUATING_RULES: "Evaluating policies...",
+  CHECKING_DUPLICATES: "Checking duplicates...",
+  MAKING_DECISIONS: "Making decisions...",
+  SAVING_RESULTS: "Saving results...",
+  COMPLETE: "Analysis complete",
+};
 
 export default function UploadPage() {
   const router = useRouter();
   const processingRef = useRef(false);
   const [files, setFiles] = useState<File[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [progressStage, setProgressStage] = useState<ProcessingStage>();
   const [error, setError] = useState<string | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -44,10 +56,13 @@ export default function UploadPage() {
     if (files.length === 0 || processingRef.current) return;
     processingRef.current = true;
     setIsProcessing(true);
+    setProgressStage(undefined);
     setError(null);
 
     try {
-      const result = await processBatch(files);
+      const result = await processBatchInWorker(files, {}, ({ stage }) => {
+        setProgressStage(stage);
+      });
       if (result.transactions.length > 0) {
         if (!result.persistence.success) {
           setError(result.persistence.error?.message ?? "Analysis completed, but the batch could not be saved.");
@@ -64,6 +79,7 @@ export default function UploadPage() {
     } finally {
       processingRef.current = false;
       setIsProcessing(false);
+      setProgressStage(undefined);
     }
   };
 
@@ -217,7 +233,7 @@ export default function UploadPage() {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                Analyzing...
+                {progressStage ? progressLabels[progressStage] : "Analyzing..."}
               </>
             ) : (
               "Analyze Batch"
