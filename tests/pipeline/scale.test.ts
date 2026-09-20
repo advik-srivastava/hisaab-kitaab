@@ -18,6 +18,7 @@ import {
   type StorageLike,
 } from "../../src/lib/storage";
 import type { Transaction } from "../../src/types/transaction";
+import { MemoryPersistence } from "../storage/memoryPersistence";
 
 class MemoryStorage implements StorageLike {
   private readonly values = new Map<string, string>();
@@ -205,6 +206,34 @@ describe("2,000-row pipeline hardening", () => {
 });
 
 describe("scale evidence and storage failure handling", () => {
+  it("persists 2,000 pipeline records through the async adapter", async () => {
+    const persistence = new MemoryPersistence();
+    const analyzed = await processBatch([csvFile(generatedCsv(2000))], {
+      ...fixedOptions,
+      persistence,
+    });
+    expect(analyzed.persistence.success).toBe(true);
+    expect(persistence.transactions.size).toBe(2000);
+    expect(persistence.audits).toHaveLength(2001);
+  }, 30_000);
+
+  it("returns a controlled async persistence failure", async () => {
+    const persistence = new MemoryPersistence();
+    persistence.saveAnalyzedBatch = async () => ({
+      success: false,
+      serializedBytes: 0,
+      serializationMs: 0,
+      writeMs: 0,
+      error: { code: "WRITE_FAILED", message: "IndexedDB write failed." },
+    });
+    const analyzed = await processBatch([csvFile(generatedCsv(1))], {
+      ...fixedOptions,
+      persistence,
+    });
+    expect(analyzed.transactions).toHaveLength(1);
+    expect(analyzed.persistence).toMatchObject({ success: false, error: { code: "WRITE_FAILED" } });
+  });
+
   it("retains failed rules, duplicate evidence, and unchanged decisions", async () => {
     const storage = new MemoryStorage();
     const csv = [

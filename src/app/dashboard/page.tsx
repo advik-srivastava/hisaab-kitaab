@@ -4,21 +4,26 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { MetricCard } from "@/components/MetricCard";
 import { StatusBadge } from "@/components/StatusBadge";
-import { loadState, type PersistedState } from "@/lib/storage";
+import { loadStateAsync, type PersistedState } from "@/lib/storage";
 import { DecisionStatus } from "@/types/decisions";
 
 export default function DashboardPage() {
   const [state, setState] = useState<PersistedState | null>(null);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setState(loadState());
+    let active = true;
+    void loadStateAsync().then((loaded) => {
+      if (active) setState(loaded);
+    });
+    return () => {
+      active = false;
+    };
   }, []);
 
   if (!state) {
     return (
       <div className="flex justify-center p-12">
-        <div className="text-slate-500">Loading...</div>
+        <div className="text-slate-500">Loading dashboard...</div>
       </div>
     );
   }

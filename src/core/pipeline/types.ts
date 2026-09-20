@@ -5,7 +5,7 @@ import type { DuplicateDetectionMetrics } from "../duplicates";
 import type { IngestionFileError } from "../ingestion";
 import type { RuleResult } from "../../types/rules";
 import type { Transaction } from "../../types/transaction";
-import type { StorageLike, StorageWriteResult } from "../../lib/storage";
+import type { PersistenceAdapter, StorageLike, StorageWriteResult } from "../../lib/storage";
 
 export interface ProcessingMetrics {
   ingestionMs: number;
@@ -21,6 +21,7 @@ export interface ProcessingMetrics {
 export interface ProcessBatchOptions {
   referenceDate?: Date | string;
   storage?: StorageLike;
+  persistence?: PersistenceAdapter;
   now?: () => Date;
 }
 

@@ -6,6 +6,7 @@ import type { Transaction } from "../../types/transaction";
 
 export const STORAGE_VERSION = 1 as const;
 export const STORAGE_KEY = "hisaab-kitaab:v1";
+export const BATCH_MARKER_KEY = "hisaab-kitaab:current-batch";
 
 export type ReviewAction = "APPROVE" | "REJECT" | "MARK_NOT_DUPLICATE";
 
@@ -69,4 +70,33 @@ export interface StorageWriteResult {
   serializationMs: number;
   writeMs: number;
   error?: StorageWriteError;
+}
+
+export interface BatchMetadata {
+  batchId: string;
+  createdAt: string;
+  batchSummary?: BatchSummary;
+}
+
+export interface PersistenceAdapter {
+  getCurrentBatchMetadata(): Promise<BatchMetadata | undefined>;
+  getCurrentBatch(): Promise<PersistedBatch | undefined>;
+  getBatchSummary(): Promise<BatchSummary | undefined>;
+  getTransaction(transactionId: string): Promise<Transaction | undefined>;
+  getTransactionsForBatch(batchId: string): Promise<Transaction[]>;
+  getRuleResults(transactionId: string): Promise<RuleResult[]>;
+  getDuplicateMatches(transactionId: string): Promise<DuplicateMatch[]>;
+  getDecision(transactionId: string): Promise<Decision | undefined>;
+  getAuditEvents(transactionId: string): Promise<AuditEvent[]>;
+  getReviewActions(transactionId: string): Promise<StoredReviewAction[]>;
+  getAuditEventCount(batchId: string): Promise<number>;
+  saveAnalyzedBatch(batch: PersistedBatch): Promise<StorageWriteResult>;
+  appendAuditEvents(batchId: string, events: readonly AuditEvent[]): Promise<StorageWriteResult>;
+  saveReviewAction(
+    batchId: string,
+    transactionId: string,
+    reviewAction: StoredReviewAction,
+    auditEvent: AuditEvent,
+  ): Promise<StorageWriteResult>;
+  clear(): Promise<void>;
 }
