@@ -6,6 +6,7 @@ import type { DuplicateMatch } from "../../src/types/duplicates";
 import type { RuleResult } from "../../src/types/rules";
 import type { Transaction } from "../../src/types/transaction";
 import {
+  BATCH_MARKER_KEY,
   STORAGE_KEY,
   clearState,
   createInitialState,
@@ -183,6 +184,23 @@ describe("browser-safe persisted storage", () => {
     const storage = new MemoryStorage();
     storage.setItem(STORAGE_KEY, "{invalid json");
     expect(loadState(storage)).toEqual(createInitialState());
+  });
+
+  it("ignores and clears stale browser localStorage batch data", () => {
+    const storage = new MemoryStorage();
+    storage.setItem(STORAGE_KEY, JSON.stringify(saveAnalyzedBatch(analyzedBatch(), new MemoryStorage())));
+    Object.defineProperty(globalThis, "window", {
+      configurable: true,
+      value: { localStorage: storage },
+    });
+    try {
+      expect(loadState()).toEqual(createInitialState());
+      expect(storage.getItem(STORAGE_KEY)).toBeNull();
+      storage.setItem(BATCH_MARKER_KEY, "batch-indexeddb");
+      expect(loadState().currentBatch?.batchId).toBe("batch-indexeddb");
+    } finally {
+      Reflect.deleteProperty(globalThis, "window");
+    }
   });
 
   it("falls back safely for unsupported versions and wrong shapes", () => {

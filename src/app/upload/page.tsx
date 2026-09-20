@@ -49,7 +49,9 @@ export default function UploadPage() {
     try {
       const result = await processBatch(files);
       if (result.transactions.length > 0) {
-        if (result.fileErrors.length > 0) {
+        if (!result.persistence.success) {
+          setError(result.persistence.error?.message ?? "Analysis completed, but the batch could not be saved.");
+        } else if (result.fileErrors.length > 0) {
           setError(`${result.fileErrors.length} file(s) could not be processed. Valid files were analyzed successfully.`);
         } else {
           router.push("/dashboard");

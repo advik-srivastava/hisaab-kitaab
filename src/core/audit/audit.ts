@@ -1,15 +1,18 @@
 import type { AuditEvent, ActorType } from "../../types/audit";
 import type { DecisionStatus } from "../../types/decisions";
 import {
+  getBrowserPersistence,
   loadState,
   saveStateWithResult,
   type PersistedState,
+  type PersistenceAdapter,
   type StorageLike,
   type StorageWriteResult,
 } from "../../lib/storage";
 
 export interface AuditRuntimeOptions {
   storage?: StorageLike;
+  persistence?: PersistenceAdapter;
   now?: () => Date;
 }
 
@@ -51,6 +54,14 @@ function createAuditEvent(
   now: () => Date,
 ): AuditEvent {
   const sequence = (state.currentBatch?.auditEvents.length ?? 0) + 1;
+  return createAuditEventAtSequence(sequence, input, now);
+}
+
+export function createAuditEventAtSequence(
+  sequence: number,
+  input: AppendAuditEventInput,
+  now: () => Date,
+): AuditEvent {
   const timestamp = now().toISOString();
   return {
     id: `audit-${sequence}-${timestamp}`,
@@ -97,6 +108,29 @@ export function appendAuditEvents(
     events,
     persistence: saveStateWithResult(state, options.storage),
   };
+}
+
+export async function appendAuditEventsAsync(
+  inputs: readonly AppendAuditEventInput[],
+  options: AuditRuntimeOptions = {},
+): Promise<AppendAuditEventsResult> {
+  if (options.storage && !options.persistence) return appendAuditEvents(inputs, options);
+  const adapter = options.persistence ?? getBrowserPersistence();
+  if (!adapter) return invalidBatchResult();
+  try {
+    const metadata = await adapter.getCurrentBatchMetadata();
+    if (!metadata || inputs.some(({ batchId }) => batchId !== metadata.batchId)) {
+      return invalidBatchResult();
+    }
+    const start = (await adapter.getAuditEventCount(metadata.batchId)) + 1;
+    const now = options.now ?? (() => new Date());
+    const events = inputs.map((input, index) =>
+      createAuditEventAtSequence(start + index, input, now),
+    );
+    return { events, persistence: await adapter.appendAuditEvents(metadata.batchId, events) };
+  } catch {
+    return invalidBatchResult();
+  }
 }
 
 export { createAuditEvent };

@@ -10,13 +10,13 @@ import { Transaction } from "@/types/transaction";
 import { Decision } from "@/types/decisions";
 import { RuleResult } from "@/types/rules";
 import { DuplicateMatch } from "@/types/duplicates";
-import { applyReviewAction } from "@/core/audit";
+import { applyReviewActionAsync } from "@/core/audit";
 import {
-  getTransaction,
-  getDecision,
-  getRuleResults,
-  getDuplicateMatches,
-  getAuditEvents,
+  getTransactionAsync,
+  getDecisionAsync,
+  getRuleResultsAsync,
+  getDuplicateMatchesAsync,
+  getAuditEventsAsync,
 } from "@/lib/storage";
 
 export default function ExceptionDetailPage() {
@@ -35,17 +35,20 @@ export default function ExceptionDetailPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [message, setMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
 
-  const loadData = () => {
-    const t = getTransaction(id);
-    if (t) {
-      setTransaction(t);
-      setDecision(getDecision(id) || null);
-      setRuleResults(getRuleResults(id));
-      
-      const matches = getDuplicateMatches(id);
-      setDuplicateMatches(matches);
-      
-      const events = getAuditEvents(id);
+  const loadData = async () => {
+    try {
+      const [t, loadedDecision, loadedRules, matches, events] = await Promise.all([
+        getTransactionAsync(id),
+        getDecisionAsync(id),
+        getRuleResultsAsync(id),
+        getDuplicateMatchesAsync(id),
+        getAuditEventsAsync(id),
+      ]);
+      if (t) {
+        setTransaction(t);
+        setDecision(loadedDecision || null);
+        setRuleResults(loadedRules);
+        setDuplicateMatches(matches);
       // Sort chronologically (oldest first)
       events.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
       setAuditEvents(events);
@@ -53,46 +56,62 @@ export default function ExceptionDetailPage() {
       if (matches.length > 0) {
         // Load strongest match for evidence display
         const bestMatch = matches[0];
-        setMatchedTransaction(getTransaction(bestMatch.matchedTransactionId) || null);
+          setMatchedTransaction(await getTransactionAsync(bestMatch.matchedTransactionId) || null);
+        } else {
+          setMatchedTransaction(null);
+        }
+      } else {
+        setTransaction(null);
+        setDecision(null);
+        setRuleResults([]);
+        setDuplicateMatches([]);
+        setAuditEvents([]);
+        setMatchedTransaction(null);
       }
-    } else {
+    } catch {
       setTransaction(null);
       setDecision(null);
       setRuleResults([]);
       setDuplicateMatches([]);
       setAuditEvents([]);
       setMatchedTransaction(null);
+      setMessage({ text: "Failed to load transaction data.", type: "error" });
+    } finally {
+      setHasLoaded(true);
     }
-    setHasLoaded(true);
   };
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadData();
+    void loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  const handleAction = (action: "APPROVE" | "REJECT" | "MARK_NOT_DUPLICATE") => {
+  const handleAction = async (action: "APPROVE" | "REJECT" | "MARK_NOT_DUPLICATE") => {
     if (isProcessing) return;
     setIsProcessing(true);
     setMessage(null);
 
-    const result = applyReviewAction({
-      transactionId: id,
-      action,
-      reviewer: "Finance Reviewer",
-      note: note.trim() || undefined,
-    });
+    try {
+      const result = await applyReviewActionAsync({
+        transactionId: id,
+        action,
+        reviewer: "Finance Reviewer",
+        note: note.trim() || undefined,
+      });
 
-    if (result) {
-      setMessage({ text: "Decision recorded.", type: "success" });
-      setNote("");
-      loadData(); // Reload data to show new audit event
-    } else {
+      if (result?.persistence.success) {
+        setMessage({ text: "Decision recorded.", type: "success" });
+        setNote("");
+        await loadData();
+      } else {
+        setMessage({ text: "Failed to record decision.", type: "error" });
+      }
+    } catch {
       setMessage({ text: "Failed to record decision.", type: "error" });
+    } finally {
+      setIsProcessing(false);
     }
-    
-    setIsProcessing(false);
   };
 
   if (!hasLoaded) {
@@ -107,7 +126,7 @@ export default function ExceptionDetailPage() {
     return (
       <div className="max-w-3xl mx-auto mt-10 text-center">
         <h2 className="text-xl font-semibold text-slate-900 mb-2">
-          Exception not found.
+          {message?.type === "error" ? message.text : "Exception not found."}
         </h2>
         <Link href="/exceptions" className="text-blue-600 hover:underline">
           Return to the exception queue.

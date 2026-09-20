@@ -1,5 +1,5 @@
 import {
-  appendAuditEvents,
+  appendAuditEventsAsync,
   type AppendAuditEventInput,
 } from "../audit";
 import { makeDecision } from "../decisions";
@@ -9,7 +9,7 @@ import {
 } from "../duplicates";
 import { ingestFiles } from "../ingestion";
 import { evaluateRules } from "../rules";
-import { saveAnalyzedBatchWithResult } from "../../lib/storage";
+import { saveAnalyzedBatchAsync } from "../../lib/storage";
 import type { Decision } from "../../types/decisions";
 import type { RuleResult } from "../../types/rules";
 import { associateDuplicateMatches } from "./associations";
@@ -68,7 +68,7 @@ export async function processBatch(
     duplicateMatches,
   );
 
-  const initialSave = saveAnalyzedBatchWithResult(
+  const initialSave = await saveAnalyzedBatchAsync(
     {
       batchId: ingestion.batchId,
       createdAt,
@@ -78,7 +78,7 @@ export async function processBatch(
       duplicateMatches,
       decisions,
     },
-    options.storage,
+    options.persistence ?? options.storage,
   );
 
   const auditInputs: AppendAuditEventInput[] = [
@@ -114,17 +114,23 @@ export async function processBatch(
   }
 
   const auditResult = initialSave.persistence.success
-    ? appendAuditEvents(auditInputs, { storage: options.storage, now })
+    ? await appendAuditEventsAsync(auditInputs, {
+        storage: options.storage,
+        persistence: options.persistence,
+        now,
+      })
     : undefined;
-  const persistence = auditResult?.persistence ?? initialSave.persistence;
+  const persistence = auditResult
+    ? {
+        ...auditResult.persistence,
+        serializedBytes: initialSave.persistence.serializedBytes + auditResult.persistence.serializedBytes,
+        serializationMs: initialSave.persistence.serializationMs + auditResult.persistence.serializationMs,
+        writeMs: initialSave.persistence.writeMs + auditResult.persistence.writeMs,
+      }
+    : initialSave.persistence;
   const auditEvents = auditResult?.events ?? [];
-  const serializationMs =
-    initialSave.persistence.serializationMs +
-    (auditResult?.persistence.serializationMs ?? 0);
-  const persistenceMs =
-    serializationMs +
-    initialSave.persistence.writeMs +
-    (auditResult?.persistence.writeMs ?? 0);
+  const serializationMs = persistence.serializationMs;
+  const persistenceMs = serializationMs + persistence.writeMs;
 
   return {
     batchId: ingestion.batchId,

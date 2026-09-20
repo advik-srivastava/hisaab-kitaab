@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { StatusBadge } from "@/components/StatusBadge";
-import { loadState, type PersistedState } from "@/lib/storage";
+import { loadStateAsync, type PersistedState } from "@/lib/storage";
 import { DecisionStatus } from "@/types/decisions";
 
 type FilterType = "All" | "HIGH_RISK" | "REVIEW";
@@ -13,14 +13,19 @@ export default function ExceptionsPage() {
   const [filter, setFilter] = useState<FilterType>("All");
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setState(loadState());
+    let active = true;
+    void loadStateAsync().then((loaded) => {
+      if (active) setState(loaded);
+    });
+    return () => {
+      active = false;
+    };
   }, []);
 
   if (!state) {
     return (
       <div className="flex justify-center p-12">
-        <div className="text-slate-500">Loading...</div>
+        <div className="text-slate-500">Loading exceptions...</div>
       </div>
     );
   }

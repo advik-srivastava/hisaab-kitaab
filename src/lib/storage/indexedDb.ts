@@ -1,0 +1,327 @@
+import type { AuditEvent } from "../../types/audit";
+import type { BatchSummary, Decision } from "../../types/decisions";
+import type { DuplicateMatch } from "../../types/duplicates";
+import type { RuleResult } from "../../types/rules";
+import type { Transaction } from "../../types/transaction";
+import {
+  BATCH_MARKER_KEY,
+  STORAGE_KEY,
+  type BatchMetadata,
+  type PersistedBatch,
+  type PersistenceAdapter,
+  type StorageWriteResult,
+  type StoredReviewAction,
+} from "./types";
+
+export const DATABASE_NAME = "hisaab-kitaab";
+export const DATABASE_VERSION = 1;
+export const OBJECT_STORES = {
+  batches: "batches",
+  transactions: "transactions",
+  ruleResults: "ruleResults",
+  duplicateMatches: "duplicateMatches",
+  decisions: "decisions",
+  reviewState: "reviewState",
+  auditEvents: "auditEvents",
+} as const;
+
+interface BatchRecord extends BatchMetadata { current: number }
+interface RuleRecord { transactionId: string; batchId: string; results: RuleResult[] }
+interface DuplicateRecord {
+  transactionId: string;
+  batchId: string;
+  matchedTransactionIds: string[];
+  matches: DuplicateMatch[];
+}
+interface DecisionRecord { transactionId: string; batchId: string; decision: Decision }
+interface ReviewRecord { transactionId: string; batchId: string; actions: StoredReviewAction[] }
+interface AuditRecord {
+  id: string;
+  batchId: string;
+  transactionId: string;
+  order: number;
+  event: AuditEvent;
+}
+
+function requestResult<T>(request: IDBRequest<T>): Promise<T> {
+  return new Promise((resolve, reject) => {
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function transactionDone(transaction: IDBTransaction): Promise<void> {
+  return new Promise((resolve, reject) => {
+    transaction.oncomplete = () => resolve();
+    transaction.onabort = () => reject(transaction.error);
+    transaction.onerror = () => reject(transaction.error);
+  });
+}
+
+function createSchema(database: IDBDatabase): void {
+  const batches = database.createObjectStore(OBJECT_STORES.batches, { keyPath: "batchId" });
+  batches.createIndex("current", "current");
+  const transactions = database.createObjectStore(OBJECT_STORES.transactions, { keyPath: "id" });
+  transactions.createIndex("batchId", "batchId");
+  const rules = database.createObjectStore(OBJECT_STORES.ruleResults, { keyPath: "transactionId" });
+  rules.createIndex("batchId", "batchId");
+  const duplicates = database.createObjectStore(OBJECT_STORES.duplicateMatches, { keyPath: "transactionId" });
+  duplicates.createIndex("batchId", "batchId");
+  duplicates.createIndex("matchedTransactionIds", "matchedTransactionIds", { multiEntry: true });
+  const decisions = database.createObjectStore(OBJECT_STORES.decisions, { keyPath: "transactionId" });
+  decisions.createIndex("batchId", "batchId");
+  const reviews = database.createObjectStore(OBJECT_STORES.reviewState, { keyPath: "transactionId" });
+  reviews.createIndex("batchId", "batchId");
+  const audits = database.createObjectStore(OBJECT_STORES.auditEvents, { keyPath: "id" });
+  audits.createIndex("batchId", "batchId");
+  audits.createIndex("transactionId", "transactionId");
+}
+
+function openDatabase(factory: IDBFactory): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const request = factory.open(DATABASE_NAME, DATABASE_VERSION);
+    request.onupgradeneeded = () => createSchema(request.result);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+    request.onblocked = () => reject(new Error("IndexedDB upgrade was blocked."));
+  });
+}
+
+function storageResult(
+  success: boolean,
+  startedAt: number,
+  records: readonly unknown[],
+  error?: unknown,
+): StorageWriteResult {
+  const encoder = new TextEncoder();
+  const serializedBytes = records.reduce<number>(
+    (total, record) => total + encoder.encode(JSON.stringify(record)).byteLength,
+    0,
+  );
+  const name = error && typeof error === "object" && "name" in error ? String(error.name) : "";
+  return {
+    success,
+    serializedBytes,
+    serializationMs: 0,
+    writeMs: performance.now() - startedAt,
+    error: success
+      ? undefined
+      : {
+          code: name === "QuotaExceededError" ? "QUOTA_EXCEEDED" : "WRITE_FAILED",
+          message: name === "QuotaExceededError"
+            ? "Browser storage quota was exceeded."
+            : "IndexedDB could not be written.",
+        },
+  };
+}
+
+function updateBrowserMarker(batchId?: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(STORAGE_KEY);
+    if (batchId) window.localStorage.setItem(BATCH_MARKER_KEY, batchId);
+    else window.localStorage.removeItem(BATCH_MARKER_KEY);
+  } catch {
+    // The marker is non-critical; IndexedDB remains the source of truth.
+  }
+}
+
+export class IndexedDbPersistence implements PersistenceAdapter {
+  private databasePromise?: Promise<IDBDatabase>;
+
+  constructor(private readonly factory: IDBFactory) {}
+
+  private database(): Promise<IDBDatabase> {
+    this.databasePromise ??= openDatabase(this.factory);
+    return this.databasePromise;
+  }
+
+  private async byIndex<T>(store: string, index: string, key: IDBValidKey): Promise<T[]> {
+    const database = await this.database();
+    return requestResult(
+      database.transaction(store, "readonly").objectStore(store).index(index).getAll(key) as IDBRequest<T[]>,
+    );
+  }
+
+  private async getRecord<T>(store: string, key: IDBValidKey): Promise<T | undefined> {
+    const database = await this.database();
+    return requestResult(
+      database.transaction(store, "readonly").objectStore(store).get(key) as IDBRequest<T | undefined>,
+    );
+  }
+
+  async getCurrentBatchMetadata(): Promise<BatchMetadata | undefined> {
+    const database = await this.database();
+    const record = await requestResult(
+      database.transaction(OBJECT_STORES.batches, "readonly")
+        .objectStore(OBJECT_STORES.batches).index("current").get(1) as IDBRequest<BatchRecord | undefined>,
+    );
+    if (!record) return undefined;
+    const { batchId, createdAt, batchSummary } = record;
+    return { batchId, createdAt, batchSummary };
+  }
+
+  async getCurrentBatch(): Promise<PersistedBatch | undefined> {
+    const metadata = await this.getCurrentBatchMetadata();
+    if (!metadata) return undefined;
+    const [transactions, rules, duplicates, decisions, reviews, audits] = await Promise.all([
+      this.getTransactionsForBatch(metadata.batchId),
+      this.byIndex<RuleRecord>(OBJECT_STORES.ruleResults, "batchId", metadata.batchId),
+      this.byIndex<DuplicateRecord>(OBJECT_STORES.duplicateMatches, "batchId", metadata.batchId),
+      this.byIndex<DecisionRecord>(OBJECT_STORES.decisions, "batchId", metadata.batchId),
+      this.byIndex<ReviewRecord>(OBJECT_STORES.reviewState, "batchId", metadata.batchId),
+      this.byIndex<AuditRecord>(OBJECT_STORES.auditEvents, "batchId", metadata.batchId),
+    ]);
+    const ruleResults = Object.fromEntries(transactions.map(({ id }) => [id, [] as RuleResult[]]));
+    const duplicateMatches = Object.fromEntries(transactions.map(({ id }) => [id, [] as DuplicateMatch[]]));
+    for (const record of rules) ruleResults[record.transactionId] = record.results;
+    for (const record of duplicates) duplicateMatches[record.transactionId] = record.matches;
+    audits.sort((a, b) => a.order - b.order);
+    return {
+      ...metadata,
+      transactions,
+      ruleResults,
+      duplicateMatches,
+      decisions: Object.fromEntries(decisions.map(({ transactionId, decision }) => [transactionId, decision])),
+      reviewActions: Object.fromEntries(reviews.map(({ transactionId, actions }) => [transactionId, actions])),
+      auditEvents: audits.map(({ event }) => event),
+    };
+  }
+
+  async getBatchSummary(): Promise<BatchSummary | undefined> {
+    return (await this.getCurrentBatchMetadata())?.batchSummary;
+  }
+
+  getTransaction(transactionId: string): Promise<Transaction | undefined> {
+    return this.getRecord(OBJECT_STORES.transactions, transactionId);
+  }
+
+  getTransactionsForBatch(batchId: string): Promise<Transaction[]> {
+    return this.byIndex(OBJECT_STORES.transactions, "batchId", batchId);
+  }
+
+  async getRuleResults(transactionId: string): Promise<RuleResult[]> {
+    return (await this.getRecord<RuleRecord>(OBJECT_STORES.ruleResults, transactionId))?.results ?? [];
+  }
+
+  async getDuplicateMatches(transactionId: string): Promise<DuplicateMatch[]> {
+    return (await this.getRecord<DuplicateRecord>(OBJECT_STORES.duplicateMatches, transactionId))?.matches ?? [];
+  }
+
+  async getDecision(transactionId: string): Promise<Decision | undefined> {
+    return (await this.getRecord<DecisionRecord>(OBJECT_STORES.decisions, transactionId))?.decision;
+  }
+
+  async getAuditEvents(transactionId: string): Promise<AuditEvent[]> {
+    const records = await this.byIndex<AuditRecord>(OBJECT_STORES.auditEvents, "transactionId", transactionId);
+    return records.sort((a, b) => a.order - b.order).map(({ event }) => event);
+  }
+
+  async getReviewActions(transactionId: string): Promise<StoredReviewAction[]> {
+    return (await this.getRecord<ReviewRecord>(OBJECT_STORES.reviewState, transactionId))?.actions ?? [];
+  }
+
+  async getAuditEventCount(batchId: string): Promise<number> {
+    const database = await this.database();
+    return requestResult(
+      database.transaction(OBJECT_STORES.auditEvents, "readonly")
+        .objectStore(OBJECT_STORES.auditEvents).index("batchId").count(batchId),
+    );
+  }
+
+  async saveAnalyzedBatch(batch: PersistedBatch): Promise<StorageWriteResult> {
+    const metadata: BatchRecord = { batchId: batch.batchId, createdAt: batch.createdAt, batchSummary: batch.batchSummary, current: 1 };
+    const rules: RuleRecord[] = batch.transactions.flatMap(({ id }) => {
+      const results = (batch.ruleResults[id] ?? []).filter(({ status }) => status === "FAIL");
+      return results.length ? [{ transactionId: id, batchId: batch.batchId, results }] : [];
+    });
+    const duplicates: DuplicateRecord[] = batch.transactions.flatMap(({ id }) => {
+      const matches = batch.duplicateMatches[id] ?? [];
+      return matches.length
+        ? [{
+            transactionId: id,
+            batchId: batch.batchId,
+            matches,
+            matchedTransactionIds: matches.map(({ matchedTransactionId }) => matchedTransactionId),
+          }]
+        : [];
+    });
+    const decisions: DecisionRecord[] = Object.entries(batch.decisions).map(([transactionId, decision]) => ({ transactionId, batchId: batch.batchId, decision }));
+    const reviews: ReviewRecord[] = Object.entries(batch.reviewActions).map(([transactionId, actions]) => ({ transactionId, batchId: batch.batchId, actions }));
+    const audits: AuditRecord[] = batch.auditEvents.map((event, order) => ({ id: event.id, batchId: batch.batchId, transactionId: event.transactionId, order, event }));
+    const records: unknown[] = [metadata, ...batch.transactions, ...rules, ...duplicates, ...decisions, ...reviews, ...audits];
+    const startedAt = performance.now();
+    try {
+      const database = await this.database();
+      const stores = Object.values(OBJECT_STORES);
+      const transaction = database.transaction(stores, "readwrite");
+      const done = transactionDone(transaction);
+      for (const store of stores) transaction.objectStore(store).clear();
+      transaction.objectStore(OBJECT_STORES.batches).put(metadata);
+      for (const record of batch.transactions) transaction.objectStore(OBJECT_STORES.transactions).put(record);
+      for (const record of rules) transaction.objectStore(OBJECT_STORES.ruleResults).put(record);
+      for (const record of duplicates) transaction.objectStore(OBJECT_STORES.duplicateMatches).put(record);
+      for (const record of decisions) transaction.objectStore(OBJECT_STORES.decisions).put(record);
+      for (const record of reviews) transaction.objectStore(OBJECT_STORES.reviewState).put(record);
+      for (const record of audits) transaction.objectStore(OBJECT_STORES.auditEvents).put(record);
+      await done;
+      updateBrowserMarker(batch.batchId);
+      return storageResult(true, startedAt, records);
+    } catch (error) {
+      return storageResult(false, startedAt, records, error);
+    }
+  }
+
+  async appendAuditEvents(batchId: string, events: readonly AuditEvent[]): Promise<StorageWriteResult> {
+    const startOrder = await this.getAuditEventCount(batchId);
+    const records: AuditRecord[] = events.map((event, index) => ({ id: event.id, batchId, transactionId: event.transactionId, order: startOrder + index, event }));
+    const startedAt = performance.now();
+    try {
+      const database = await this.database();
+      const transaction = database.transaction(OBJECT_STORES.auditEvents, "readwrite");
+      const done = transactionDone(transaction);
+      for (const record of records) transaction.objectStore(OBJECT_STORES.auditEvents).put(record);
+      await done;
+      return storageResult(true, startedAt, records);
+    } catch (error) {
+      return storageResult(false, startedAt, records, error);
+    }
+  }
+
+  async saveReviewAction(batchId: string, transactionId: string, reviewAction: StoredReviewAction, auditEvent: AuditEvent): Promise<StorageWriteResult> {
+    const actions = [...(await this.getReviewActions(transactionId)), reviewAction];
+    const order = await this.getAuditEventCount(batchId);
+    const review: ReviewRecord = { transactionId, batchId, actions };
+    const audit: AuditRecord = { id: auditEvent.id, batchId, transactionId, order, event: auditEvent };
+    const startedAt = performance.now();
+    try {
+      const database = await this.database();
+      const transaction = database.transaction([OBJECT_STORES.reviewState, OBJECT_STORES.auditEvents], "readwrite");
+      const done = transactionDone(transaction);
+      transaction.objectStore(OBJECT_STORES.reviewState).put(review);
+      transaction.objectStore(OBJECT_STORES.auditEvents).put(audit);
+      await done;
+      return storageResult(true, startedAt, [review, audit]);
+    } catch (error) {
+      return storageResult(false, startedAt, [review, audit], error);
+    }
+  }
+
+  async clear(): Promise<void> {
+    const database = await this.database();
+    const stores = Object.values(OBJECT_STORES);
+    const transaction = database.transaction(stores, "readwrite");
+    const done = transactionDone(transaction);
+    for (const store of stores) transaction.objectStore(store).clear();
+    await done;
+    updateBrowserMarker();
+  }
+}
+
+let browserPersistence: IndexedDbPersistence | undefined;
+
+export function getBrowserPersistence(): IndexedDbPersistence | undefined {
+  if (typeof indexedDB === "undefined") return undefined;
+  browserPersistence ??= new IndexedDbPersistence(indexedDB);
+  return browserPersistence;
+}

@@ -1,8 +1,11 @@
 import { persistedStateSchema } from "./schema";
+import { getBrowserPersistence } from "./indexedDb";
 import {
+  BATCH_MARKER_KEY,
   STORAGE_KEY,
   STORAGE_VERSION,
   type PersistedState,
+  type PersistenceAdapter,
   type StorageLike,
   type StorageWriteErrorCode,
   type StorageWriteResult,
@@ -35,6 +38,25 @@ export function loadState(storage?: StorageLike): PersistedState {
   }
 
   try {
+    if (!storage) {
+      target.removeItem(STORAGE_KEY);
+      const batchId = target.getItem(BATCH_MARKER_KEY);
+      if (!batchId) return createInitialState();
+      return {
+        version: STORAGE_VERSION,
+        currentBatch: {
+          batchId,
+          createdAt: "",
+          transactions: [],
+          ruleResults: {},
+          duplicateMatches: {},
+          decisions: {},
+          auditEvents: [],
+          reviewActions: {},
+        },
+      };
+    }
+
     const serialized = target.getItem(STORAGE_KEY);
     if (!serialized) {
       return createInitialState();
@@ -153,6 +175,7 @@ export function clearState(storage?: StorageLike): void {
 
   try {
     target.removeItem(STORAGE_KEY);
+    target.removeItem(BATCH_MARKER_KEY);
   } catch {
     // Storage can be unavailable even when window exists.
   }
@@ -160,5 +183,33 @@ export function clearState(storage?: StorageLike): void {
 
 export function resetDemoData(storage?: StorageLike): PersistedState {
   clearState(storage);
+  return createInitialState();
+}
+
+export async function loadStateAsync(
+  persistence?: PersistenceAdapter,
+): Promise<PersistedState> {
+  const adapter = persistence ?? getBrowserPersistence();
+  if (!adapter) return createInitialState();
+  try {
+    return {
+      version: STORAGE_VERSION,
+      currentBatch: (await adapter.getCurrentBatch()) ?? null,
+    };
+  } catch {
+    return createInitialState();
+  }
+}
+
+export async function resetDemoDataAsync(
+  persistence?: PersistenceAdapter,
+): Promise<PersistedState> {
+  const adapter = persistence ?? getBrowserPersistence();
+  try {
+    await adapter?.clear();
+  } catch {
+    // Reset remains safe when browser storage is unavailable.
+  }
+  clearState();
   return createInitialState();
 }
