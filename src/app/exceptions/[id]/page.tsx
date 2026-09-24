@@ -168,7 +168,7 @@ export default function ExceptionDetailPage() {
               </h1>
             </div>
             
-            <div className="flex flex-wrap gap-x-12 gap-y-6 text-sm bg-black/40 border border-panel-border rounded-xl p-6 w-fit backdrop-blur-md">
+            <div className="flex flex-wrap gap-x-12 gap-y-6 text-sm bg-slate-50 border border-panel-border rounded-xl p-6 w-fit shadow-sm">
               <div className="flex flex-col gap-2">
                 <span className="text-xs font-bold text-text-muted uppercase tracking-widest">Invoice</span>
                 <span className="text-lg font-bold text-text-primary">{transaction.invoiceNumber || "-"}</span>
@@ -179,7 +179,7 @@ export default function ExceptionDetailPage() {
               </div>
               <div className="flex flex-col gap-2">
                 <span className="text-xs font-bold text-text-muted uppercase tracking-widest">Amount</span>
-                <span className="text-lg font-bold text-brand-primary">
+                <span className="text-lg font-heading font-semibold text-brand-primary">
                   {typeof transaction.amount === "number" && Number.isFinite(transaction.amount)
                     ? `₹${transaction.amount.toLocaleString()}`
                     : "-"}
@@ -206,25 +206,25 @@ export default function ExceptionDetailPage() {
               </h3>
               <ul className="space-y-5">
                 {failedRules.map((rule, idx) => (
-                  <li key={idx} className="bg-black/40 rounded-xl p-6 border border-panel-border shadow-inner relative overflow-hidden">
+                  <li key={idx} className="bg-slate-50/50 rounded-xl p-6 border border-panel-border shadow-sm relative overflow-hidden">
                     <div className={`absolute left-0 top-0 w-1 h-full ${rule.severity === "HIGH" ? "bg-red-500" : "bg-amber-500"}`}></div>
                     <div className="flex justify-between items-start mb-4">
                       <span className="text-lg font-bold text-text-primary">{rule.ruleName}</span>
                       <span className={`text-xs px-3 py-1 rounded-md font-extrabold tracking-widest uppercase shadow-sm ${
-                        rule.severity === "HIGH" ? "bg-red-500/20 text-red-400 border border-red-500/30" : "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                        rule.severity === "HIGH" ? "bg-status-danger-bg text-status-danger-text border border-status-danger-border" : "bg-status-warning-bg text-status-warning-text border border-status-warning-border"
                       }`}>
                         {rule.severity}
                       </span>
                     </div>
                     <p className="text-sm text-text-secondary leading-relaxed mb-6">{rule.explanation}</p>
                     <div className="grid grid-cols-2 gap-5">
-                      <div className="bg-panel border border-panel-border rounded-lg p-4 shadow-sm">
+                      <div className="bg-white border border-panel-border rounded-lg p-4 shadow-sm">
                         <div className="text-xs font-bold text-text-muted uppercase tracking-widest mb-1.5">Expected Limit</div>
-                        <div className="font-bold text-text-primary">{String(rule.expectedValue)}</div>
+                        <div className="font-heading font-semibold text-text-primary text-lg">{String(rule.expectedValue)}</div>
                       </div>
-                      <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 shadow-[inset_0_0_15px_rgba(239,68,68,0.05)]">
-                        <div className="text-xs font-bold text-red-400 uppercase tracking-widest mb-1.5">Actual Value</div>
-                        <div className="font-bold text-red-400">{String(rule.actualValue)}</div>
+                      <div className="bg-status-danger-bg border border-status-danger-border rounded-lg p-4 shadow-sm">
+                        <div className="text-xs font-bold text-status-danger-text uppercase tracking-widest mb-1.5">Actual Value</div>
+                        <div className="font-heading font-semibold text-status-danger-text text-lg">{String(rule.actualValue)}</div>
                       </div>
                     </div>
                   </li>
@@ -236,10 +236,10 @@ export default function ExceptionDetailPage() {
           {/* Duplicate Evidence */}
           {bestMatch && matchedTransaction && (
             <div className="card overflow-hidden">
-              <div className="bg-black/60 border-b border-panel-border px-6 py-5 flex items-center justify-between backdrop-blur-md">
+              <div className="bg-slate-100/50 border-b border-panel-border px-6 py-5 flex items-center justify-between">
                 <h3 className="text-xl font-bold text-text-primary flex items-center gap-3">
-                  <div className="bg-amber-500/20 p-2 rounded-lg ring-1 ring-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.3)]">
-                    <svg className="w-5 h-5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <div className="bg-amber-500/10 p-2 rounded-lg ring-1 ring-amber-500/30 shadow-sm">
+                    <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                     </svg>
                   </div>
@@ -249,7 +249,7 @@ export default function ExceptionDetailPage() {
               
               <div className="flex flex-col sm:flex-row divide-y sm:divide-y-0 sm:divide-x divide-panel-border">
                 {/* Current Record */}
-                <div className="w-full sm:w-1/2 p-6 sm:p-8 space-y-6 bg-black/20 relative">
+                <div className="w-full sm:w-1/2 p-6 sm:p-8 space-y-6 bg-slate-50/50 relative">
                   <div className="absolute top-0 left-0 w-full h-1 bg-brand-primary shadow-[0_0_10px_var(--color-brand-glow)]"></div>
                   <h4 className="text-xs font-extrabold text-brand-primary uppercase tracking-widest mb-4">Current Record</h4>
                   
@@ -263,7 +263,7 @@ export default function ExceptionDetailPage() {
                   </div>
                   <div className="space-y-1">
                     <div className="text-text-muted text-xs font-bold uppercase tracking-widest">Amount</div>
-                    <div className={`text-lg font-extrabold py-1 px-3 -ml-3 rounded-lg inline-block transition-colors ${bestMatch.amountMatch ? "bg-amber-500/20 text-amber-400 border border-amber-500/30" : "text-text-primary"}`}>
+                    <div className={`text-lg font-heading font-semibold py-1 px-3 -ml-3 rounded-lg inline-block transition-colors ${bestMatch.amountMatch ? "bg-amber-100 text-amber-700 border border-amber-200" : "text-text-primary"}`}>
                       {typeof transaction.amount === "number" && Number.isFinite(transaction.amount)
                         ? `₹${transaction.amount.toLocaleString()}`
                         : "-"}
@@ -275,14 +275,14 @@ export default function ExceptionDetailPage() {
                   </div>
                   <div className="space-y-1 pt-2">
                     <div className="text-text-muted text-[10px] font-bold uppercase tracking-widest">Transaction ID</div>
-                    <div className="text-xs font-mono text-text-muted bg-panel border border-panel-border px-2 py-1 rounded inline-block">{transaction.id}</div>
+                    <div className="text-xs font-mono text-text-muted bg-white border border-panel-border px-2 py-1 rounded inline-block shadow-sm">{transaction.id}</div>
                   </div>
                 </div>
 
                 {/* Matched Record */}
-                <div className="w-full sm:w-1/2 p-6 sm:p-8 space-y-6 bg-amber-900/10 relative">
-                  <div className="absolute top-0 left-0 w-full h-1 bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]"></div>
-                  <h4 className="text-xs font-extrabold text-amber-500 uppercase tracking-widest mb-4">Matched Record</h4>
+                <div className="w-full sm:w-1/2 p-6 sm:p-8 space-y-6 bg-amber-50/50 relative">
+                  <div className="absolute top-0 left-0 w-full h-1 bg-amber-500 shadow-sm"></div>
+                  <h4 className="text-xs font-extrabold text-amber-600 uppercase tracking-widest mb-4">Matched Record</h4>
 
                   <div className="space-y-1">
                     <div className="text-text-muted text-xs font-bold uppercase tracking-widest">Invoice</div>
@@ -294,7 +294,7 @@ export default function ExceptionDetailPage() {
                   </div>
                   <div className="space-y-1">
                     <div className="text-text-muted text-xs font-bold uppercase tracking-widest">Amount</div>
-                    <div className={`text-lg font-extrabold py-1 px-3 -ml-3 rounded-lg inline-block transition-colors ${bestMatch.amountMatch ? "bg-amber-500/20 text-amber-400 border border-amber-500/30" : "text-text-primary"}`}>
+                    <div className={`text-lg font-heading font-semibold py-1 px-3 -ml-3 rounded-lg inline-block transition-colors ${bestMatch.amountMatch ? "bg-amber-100 text-amber-700 border border-amber-200" : "text-text-primary"}`}>
                       {typeof matchedTransaction.amount === "number" && Number.isFinite(matchedTransaction.amount)
                         ? `₹${matchedTransaction.amount.toLocaleString()}`
                         : "-"}
@@ -306,20 +306,20 @@ export default function ExceptionDetailPage() {
                   </div>
                   <div className="space-y-1 pt-2">
                     <div className="text-text-muted text-[10px] font-bold uppercase tracking-widest">Transaction ID</div>
-                    <div className="text-xs font-mono text-text-muted bg-panel border border-panel-border px-2 py-1 rounded inline-block">{matchedTransaction.id}</div>
+                    <div className="text-xs font-mono text-text-muted bg-white border border-panel-border px-2 py-1 rounded inline-block shadow-sm">{matchedTransaction.id}</div>
                   </div>
                 </div>
               </div>
               
               {/* Evidence details */}
               {bestMatch.evidence.length > 0 && (
-                <div className="bg-black/40 border-t border-panel-border p-6 sm:p-8">
+                <div className="bg-slate-50 border-t border-panel-border p-6 sm:p-8">
                   <h4 className="text-sm font-bold text-text-primary uppercase tracking-widest mb-4">Algorithm Evidence</h4>
                   <ul className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {bestMatch.evidence.map((ev, idx) => (
-                      <li key={idx} className="flex items-center gap-3 text-sm font-semibold text-text-secondary bg-panel px-4 py-3 rounded-xl border border-panel-border shadow-inner">
-                        <div className="bg-emerald-500/20 rounded-full p-1 border border-emerald-500/30 flex-shrink-0">
-                          <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                      <li key={idx} className="flex items-center gap-3 text-sm font-medium text-text-secondary bg-white px-4 py-3 rounded-xl border border-panel-border shadow-sm">
+                        <div className="bg-status-success-bg rounded-full p-1 border border-status-success-border flex-shrink-0">
+                          <svg className="w-4 h-4 text-status-success-text" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                           </svg>
                         </div>
@@ -327,9 +327,9 @@ export default function ExceptionDetailPage() {
                       </li>
                     ))}
                     {bestMatch.vendorSimilarity !== null && bestMatch.matchType !== "EXACT" && (
-                       <li className="flex items-center gap-3 text-sm font-semibold text-text-secondary bg-panel px-4 py-3 rounded-xl border border-panel-border shadow-inner">
-                         <div className="bg-emerald-500/20 rounded-full p-1 border border-emerald-500/30 flex-shrink-0">
-                           <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                       <li className="flex items-center gap-3 text-sm font-medium text-text-secondary bg-white px-4 py-3 rounded-xl border border-panel-border shadow-sm">
+                         <div className="bg-status-success-bg rounded-full p-1 border border-status-success-border flex-shrink-0">
+                           <svg className="w-4 h-4 text-status-success-text" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                             </svg>
                          </div>
@@ -376,7 +376,7 @@ export default function ExceptionDetailPage() {
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 placeholder="Provide context for the audit log..."
-                className="w-full rounded-xl bg-black/40 border border-panel-border px-5 py-4 text-sm font-medium text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary transition-all shadow-inner"
+                className="w-full rounded-xl bg-slate-50 border border-panel-border px-5 py-4 text-sm font-medium text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary transition-all shadow-sm"
                 disabled={isProcessing}
               />
             </div>
@@ -385,21 +385,21 @@ export default function ExceptionDetailPage() {
               <button
                 onClick={() => handleAction("APPROVE")}
                 disabled={isProcessing}
-                className="flex-1 bg-emerald-500 hover:bg-emerald-600 focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-panel disabled:opacity-50 text-white font-extrabold py-4 px-4 rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all uppercase tracking-widest active:scale-95"
+                className="flex-1 bg-emerald-600 hover:bg-emerald-700 focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-panel disabled:opacity-50 text-white font-extrabold py-4 px-4 rounded-xl shadow-sm transition-all uppercase tracking-widest active:scale-95"
               >
                 Approve
               </button>
               <button
                 onClick={() => handleAction("REJECT")}
                 disabled={isProcessing}
-                className="flex-1 bg-red-500 hover:bg-red-600 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-panel disabled:opacity-50 text-white font-extrabold py-4 px-4 rounded-xl shadow-[0_0_20px_rgba(239,68,68,0.3)] transition-all uppercase tracking-widest active:scale-95"
+                className="flex-1 bg-red-600 hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-panel disabled:opacity-50 text-white font-extrabold py-4 px-4 rounded-xl shadow-sm transition-all uppercase tracking-widest active:scale-95"
               >
                 Reject
               </button>
               <button
                 onClick={() => handleAction("MARK_NOT_DUPLICATE")}
                 disabled={isProcessing}
-                className="sm:w-auto bg-panel hover:bg-panel-hover focus:ring-2 focus:ring-text-muted focus:ring-offset-2 focus:ring-offset-panel disabled:opacity-50 text-text-primary border border-panel-border font-extrabold py-4 px-8 rounded-xl transition-all uppercase tracking-widest active:scale-95"
+                className="sm:w-auto bg-white hover:bg-slate-50 focus:ring-2 focus:ring-text-muted focus:ring-offset-2 focus:ring-offset-panel disabled:opacity-50 text-text-primary border border-panel-border font-extrabold py-4 px-8 rounded-xl shadow-sm transition-all uppercase tracking-widest active:scale-95"
               >
                 Not Duplicate
               </button>

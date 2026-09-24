@@ -42,7 +42,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 href={item.href}
                 className={`px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-[180ms] ease-[cubic-bezier(.22,1,.36,1)] flex items-center gap-3 ${
                   isActive
-                    ? "bg-brand-primary/10 text-brand-primary ring-1 ring-brand-primary/30 shadow-[inset_0_0_20px_rgba(59,130,246,0.1)]"
+                    ? "bg-brand-primary/5 text-brand-primary shadow-sm ring-1 ring-brand-primary/20"
                     : "text-text-secondary hover:bg-panel-hover hover:text-text-primary"
                 }`}
               >
