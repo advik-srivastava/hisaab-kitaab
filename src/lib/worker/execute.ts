@@ -1,4 +1,4 @@
-import { analyzeBatch } from "../../core/pipeline";
+import { analyzeBatch, isActivePolicyRequiredError } from "../../core/pipeline";
 import type {
   BatchWorkerResponse,
   ProcessBatchWorkerRequest,
@@ -28,7 +28,7 @@ export async function executeProcessBatchRequest(
       type: "PROCESS_ERROR",
       requestId: request.requestId,
       error: {
-        code: "ANALYSIS_FAILED",
+        code: isActivePolicyRequiredError(error) ? "ACTIVE_POLICY_REQUIRED" : "ANALYSIS_FAILED",
         message: error instanceof Error ? error.message : "Batch analysis failed.",
       },
     });

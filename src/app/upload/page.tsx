@@ -10,8 +10,8 @@ import type { IngestionFileError } from "@/core/ingestion";
 import type { ProcessingStage } from "@/core/pipeline";
 import { processBatchInWorker } from "@/lib/worker";
 import { getActiveFinancePolicy } from "@/lib/storage";
-import { defaultFinancePolicy } from "@/config/defaultPolicy";
 import type { FinancePolicy } from "@/types/policies";
+import { PolicyRequiredState } from "@/components/PolicyRequiredState";
 
 const progressLabels: Partial<Record<ProcessingStage, string>> = {
   READING_FILES: "Reading files...",
@@ -35,14 +35,15 @@ export default function UploadPage() {
   const [error, setError] = useState<string | null>(null);
   const [fileErrors, setFileErrors] = useState<IngestionFileError[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
-  const [activePolicy, setActivePolicy] = useState<FinancePolicy>(defaultFinancePolicy);
+  const [activePolicy, setActivePolicy] = useState<FinancePolicy>();
+  const [policyLoaded, setPolicyLoaded] = useState(serverMode);
 
   useEffect(() => {
     if (serverMode) return;
     let mounted = true;
-    void getActiveFinancePolicy().then((policy) => {
-      if (mounted) setActivePolicy(policy);
-    });
+    void getActiveFinancePolicy()
+      .then((policy) => { if (mounted) setActivePolicy(policy); })
+      .finally(() => { if (mounted) setPolicyLoaded(true); });
     return () => { mounted = false; };
   }, [serverMode]);
 
@@ -100,6 +101,10 @@ export default function UploadPage() {
 
   const handleAnalyze = async () => {
     if (files.length === 0 || processingRef.current) return;
+    if (!serverMode && !activePolicy) {
+      setError("Activate a finance policy before analyzing this batch.");
+      return;
+    }
     processingRef.current = true;
     setIsProcessing(true);
     setProgressStage(undefined);
@@ -161,8 +166,10 @@ export default function UploadPage() {
         <p className="text-lg text-text-secondary max-w-2xl mx-auto">
           Securely process your Finance batch (CSV or XLSX) to instantly identify policy exceptions and duplicate transactions.
         </p>
-        {!serverMode && <p className="mt-4 inline-flex rounded-full border border-brand-primary/20 bg-brand-primary/10 px-4 py-2 text-xs font-bold text-brand-primary">Active Policy: {activePolicy.policyName} • v{activePolicy.version}</p>}
+        {!serverMode && activePolicy && <div className="mt-5 inline-flex flex-col rounded-xl border border-brand-primary/20 bg-brand-primary/5 px-5 py-3 text-left"><span className="text-[10px] font-bold uppercase tracking-widest text-brand-primary">Active Policy</span><span className="mt-1 text-sm font-bold text-text-primary">{activePolicy.companyName}</span><span className="text-xs text-text-secondary">{activePolicy.policyName} • v{activePolicy.version}</span></div>}
       </div>
+
+      {!serverMode && policyLoaded && !activePolicy && <div className="mb-8"><PolicyRequiredState compact /></div>}
 
       <div className="card p-8 sm:p-14 text-center relative overflow-hidden bg-white shadow-xl shadow-brand-primary/5 border-panel-border/80">
         <div className="max-w-lg mx-auto relative z-10">
@@ -320,9 +327,9 @@ export default function UploadPage() {
         <div className="mt-12 flex flex-col items-center relative z-10">
           <button
             onClick={handleAnalyze}
-            disabled={files.length === 0 || isProcessing}
+            disabled={files.length === 0 || isProcessing || (!serverMode && (!policyLoaded || !activePolicy))}
             className={`btn-primary w-full sm:w-auto min-w-[240px] h-12 text-base ${
-              files.length === 0
+              files.length === 0 || (!serverMode && (!policyLoaded || !activePolicy))
                 ? "opacity-50 cursor-not-allowed hover:shadow-none hover:bg-brand-primary"
                 : isProcessing
                 ? "cursor-wait opacity-90 hover:shadow-[0_0_20px_var(--color-brand-glow)]"
@@ -341,6 +348,14 @@ export default function UploadPage() {
               "Analyze Batch"
             )}
           </button>
+          {!serverMode && policyLoaded && !activePolicy && <p className="mt-3 text-sm font-medium text-status-warning-text">Activate a company policy before analyzing invoices.</p>}
+          <div className="mt-7 border-t border-panel-border pt-6 text-center">
+            <p className="text-xs font-bold uppercase tracking-widest text-text-muted">Need a template?</p>
+            <div className="mt-3 flex flex-wrap justify-center gap-3">
+              <a className="text-sm font-bold text-brand-primary hover:underline" href="/templates/hisaab-kitaab-invoice-batch-sample.csv" download>Download Sample CSV</a>
+              <a className="text-sm font-bold text-text-secondary hover:text-text-primary" href="/templates/hisaab-kitaab-invoice-batch-sample.csv" target="_blank">View Required Columns</a>
+            </div>
+          </div>
         </div>
       </div>
     </div>

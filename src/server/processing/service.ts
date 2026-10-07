@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import { analyzeBatch, type AnalyzeBatchOptions, type BatchAnalysisResult } from "../../core/pipeline";
+import type { FinancePolicy } from "../../types/policies";
 import { authorize } from "../platform/authorization";
 import { PlatformError } from "../platform/errors";
 import type { PlatformRepository } from "../platform/repository";
@@ -15,6 +16,26 @@ import type {
 export interface ServerProcessingResult {
   analysis: BatchAnalysisResult;
   batch: BatchRecord;
+}
+
+function toFinancePolicy(
+  record: Awaited<ReturnType<PlatformRepository["getActivePolicy"]>>,
+  companyName: string,
+): FinancePolicy | undefined {
+  if (!record || record.state !== "ACTIVE") return undefined;
+  return {
+    id: record.id,
+    companyName,
+    policyName: record.name,
+    version: String(record.version),
+    supportedCurrencies: record.definition.supportedCurrencies,
+    expenseLimits: record.definition.expenseLimits,
+    purchaseOrderRequiredAbove: record.definition.purchaseOrderRequiredAbove,
+    requiredFields: record.definition.requiredFields,
+    createdAt: record.createdAt,
+    activatedAt: record.effectiveAt ?? record.updatedAt,
+    status: "ACTIVE",
+  };
 }
 
 export class ServerBatchProcessingService {
@@ -103,13 +124,29 @@ export class ServerBatchProcessingService {
     if (sourceFiles.length === 0 || sourceFiles.some(({ scanStatus }) => scanStatus !== "CLEAN")) {
       throw new PlatformError("VALIDATION_ERROR", "Only files with a verified CLEAN scan result can be processed.", 409);
     }
+    const activePolicyRecord = await this.repository.getActivePolicy(user.organizationId);
+    if (!activePolicyRecord || activePolicyRecord.id !== policyVersionId) {
+      throw new PlatformError(
+        "VALIDATION_ERROR",
+        "An active company policy is required before processing invoices.",
+        409,
+      );
+    }
+    const policy = toFinancePolicy(activePolicyRecord, user.organizationName);
+    if (!policy) {
+      throw new PlatformError(
+        "VALIDATION_ERROR",
+        "An active company policy is required before processing invoices.",
+        409,
+      );
+    }
     await this.repository.appendAudit({
       id: randomUUID(), organizationId: user.organizationId, timestamp: this.now().toISOString(),
       actorId: user.userId, actorRole: user.role, action: "PROCESSING_STARTED", batchId,
       metadata: { fileCount: files.length },
     });
     try {
-      const analysis = await analyzeBatch(files, options);
+      const analysis = await analyzeBatch(files, { ...options, policy });
       const batch = await this.persistAnalysis(user, analysis, sourceFiles, policyVersionId);
       return { analysis, batch };
     } catch (error) {

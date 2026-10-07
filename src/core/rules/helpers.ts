@@ -1,4 +1,5 @@
 import type { RuleResult, RuleSeverity } from "../../types/rules";
+import { formatCurrency } from "../../lib/formatting";
 
 interface ResultValues {
   actualValue: unknown;
@@ -63,10 +64,8 @@ export function toReferenceDate(value: Date | string): string {
   return parsed;
 }
 
-export function formatRupees(amount: number): string {
-  return `₹${new Intl.NumberFormat("en-IN", {
-    maximumFractionDigits: 2,
-  }).format(amount)}`;
+export function formatRupees(amount: number, currency = "INR"): string {
+  return formatCurrency(amount, currency);
 }
 
 export function matchesCategory(

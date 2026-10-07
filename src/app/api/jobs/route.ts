@@ -11,11 +11,19 @@ export async function POST(request: NextRequest) {
     if (typeof body.batchId !== "string" || !body.batchId.trim()) {
       throw new PlatformError("VALIDATION_ERROR", "A batch ID is required.", 400);
     }
+    const repository = getPlatformRepository();
+    if (!await repository.getActivePolicy(user.organizationId)) {
+      throw new PlatformError(
+        "VALIDATION_ERROR",
+        "An active company policy is required before processing invoices.",
+        409,
+      );
+    }
     const job = await getProcessingJobQueue().enqueue({
       organizationId: user.organizationId,
       batchId: body.batchId,
     });
-    await getPlatformRepository().appendAudit({
+    await repository.appendAudit({
       id: crypto.randomUUID(), organizationId: user.organizationId, timestamp: new Date().toISOString(),
       actorId: user.userId, actorRole: user.role, action: "BATCH_CREATED", batchId: body.batchId,
       metadata: { jobId: job.id, state: job.state },

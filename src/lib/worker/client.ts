@@ -25,7 +25,7 @@ export interface ProcessBatchInWorkerOptions extends ProcessBatchOptions {
 
 export class WorkerProcessingError extends Error {
   constructor(
-    readonly code: "WORKER_FAILED" | "INVALID_RESPONSE" | "ANALYSIS_FAILED",
+    readonly code: "WORKER_FAILED" | "INVALID_RESPONSE" | "ACTIVE_POLICY_REQUIRED" | "ANALYSIS_FAILED",
     message: string,
   ) {
     super(message);
@@ -128,6 +128,9 @@ export async function processBatchInWorker(
   options: ProcessBatchInWorkerOptions = {},
   onProgress?: (progress: ProcessingProgress) => void,
 ): Promise<ProcessBatchResult> {
+  if (!options.policy || options.policy.status !== "ACTIVE") {
+    return processWithoutWorker(files, options, onProgress);
+  }
   const factory = options.workerFactory
     ?? (typeof Worker === "undefined" ? undefined : createBrowserWorker);
   if (!factory) return processWithoutWorker(files, options, onProgress);

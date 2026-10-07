@@ -189,8 +189,8 @@ function expenseLimitRule(
           : !amountExists
             ? `${category} policy limit was not evaluated because the amount is missing.`
             : failed
-              ? `${category} amount ${formatRupees(transaction.amount!)} exceeds the configured ${formatRupees(limit)} policy limit.`
-              : `${category} amount ${formatRupees(transaction.amount!)} is within the configured ${formatRupees(limit)} policy limit.`,
+              ? `${category} amount ${formatRupees(transaction.amount!, transaction.currency ?? "INR")} exceeds the configured ${formatRupees(limit, transaction.currency ?? "INR")} policy limit.`
+              : `${category} amount ${formatRupees(transaction.amount!, transaction.currency ?? "INR")} is within the configured ${formatRupees(limit, transaction.currency ?? "INR")} policy limit.`,
       },
     );
   };
@@ -213,10 +213,10 @@ const purchaseOrderRequired: RuleEvaluator = (transaction, context) => {
       explanation: !amountExists
         ? "Purchase-order requirement was not evaluated because the amount is missing."
         : failed
-          ? `Purchase order is required for transactions above ${formatRupees(threshold)}.`
+          ? `Purchase order is required for transactions above ${formatRupees(threshold, transaction.currency ?? "INR")}.`
           : aboveThreshold
-            ? `Purchase order ${transaction.purchaseOrder!.trim()} is present for an amount above ${formatRupees(threshold)}.`
-            : `Purchase order is not required at or below ${formatRupees(threshold)}.`,
+            ? `Purchase order ${transaction.purchaseOrder!.trim()} is present for an amount above ${formatRupees(threshold, transaction.currency ?? "INR")}.`
+            : `Purchase order is not required at or below ${formatRupees(threshold, transaction.currency ?? "INR")}.`,
     },
   );
 };

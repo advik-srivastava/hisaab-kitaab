@@ -7,10 +7,14 @@ import {
   DEFAULT_EXCEPTION_PAGE_SIZE,
   getCurrentBatchMetadata,
   getExceptionsPage,
+  getActiveFinancePolicy,
   type BatchMetadata,
   type ExceptionsPageResult,
 } from "@/lib/storage";
 import { ServerExceptionQueue } from "@/components/ServerExceptionQueue";
+import { PolicyRequiredState } from "@/components/PolicyRequiredState";
+import type { FinancePolicy } from "@/types/policies";
+import { formatCurrency } from "@/lib/formatting";
 
 type FilterType = "All" | "HIGH_RISK" | "REVIEW";
 
@@ -27,13 +31,20 @@ function LocalExceptionsPage() {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string>();
+  const [activePolicy, setActivePolicy] = useState<FinancePolicy>();
+  const [policyLoaded, setPolicyLoaded] = useState(false);
 
   useEffect(() => {
     let active = true;
     void (async () => {
       try {
-        const current = await getCurrentBatchMetadata();
+        const [current, policy] = await Promise.all([
+          getCurrentBatchMetadata(),
+          getActiveFinancePolicy(),
+        ]);
         if (!active) return;
+        setActivePolicy(policy);
+        setPolicyLoaded(true);
         setMetadata(current ?? null);
         if (!current) return;
         const loaded = await getExceptionsPage({
@@ -58,7 +69,7 @@ function LocalExceptionsPage() {
     return <div className="p-12 text-center text-sm text-status-danger-text">{loadError}</div>;
   }
 
-  if (metadata === undefined || (loading && !result)) {
+  if (!policyLoaded || metadata === undefined || (loading && !result)) {
     return (
       <div className="flex justify-center p-12">
         <div className="text-text-secondary animate-pulse font-bold tracking-widest uppercase text-xs">Loading exceptions...</div>
@@ -67,6 +78,7 @@ function LocalExceptionsPage() {
   }
 
   if (!metadata) {
+    if (!activePolicy) return <div className="mt-10"><PolicyRequiredState /></div>;
     return (
       <div className="max-w-3xl mx-auto mt-10 text-center">
         <h2 className="text-xl font-bold text-text-primary mb-4">No analyzed batch yet.</h2>
@@ -191,7 +203,7 @@ function LocalExceptionsPage() {
                     </td>
                     <td className="table-cell font-heading font-semibold text-text-primary text-right text-base">
                       {typeof t.amount === "number" && Number.isFinite(t.amount)
-                        ? `₹${t.amount.toLocaleString()}`
+                        ? formatCurrency(t.amount, t.currency ?? "INR")
                         : "-"}
                     </td>
                     <td className="table-cell text-text-muted max-w-xs truncate font-medium">

@@ -7,7 +7,7 @@ import type { FinancePolicy } from "../../types/policies";
 export interface WorkerAnalysisOptions {
   referenceDate?: string;
   nowIso?: string;
-  policy?: FinancePolicy;
+  policy: FinancePolicy;
 }
 
 export interface ProcessBatchWorkerRequest {
@@ -32,7 +32,7 @@ export interface ProcessErrorWorkerResponse {
   type: "PROCESS_ERROR";
   requestId: string;
   error: {
-    code: "ANALYSIS_FAILED";
+    code: "ACTIVE_POLICY_REQUIRED" | "ANALYSIS_FAILED";
     message: string;
   };
 }
@@ -67,7 +67,8 @@ export function isBatchWorkerResponse(value: unknown): value is BatchWorkerRespo
   }
   if (candidate.type === "PROCESS_ERROR") {
     const error = candidate.error as { code?: unknown; message?: unknown } | undefined;
-    return error?.code === "ANALYSIS_FAILED" && typeof error.message === "string";
+    return (error?.code === "ACTIVE_POLICY_REQUIRED" || error?.code === "ANALYSIS_FAILED")
+      && typeof error.message === "string";
   }
   if (candidate.type === "PROCESS_COMPLETE") {
     const result = candidate.result as Partial<BatchAnalysisResult> | undefined;

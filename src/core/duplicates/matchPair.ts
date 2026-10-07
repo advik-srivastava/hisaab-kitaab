@@ -52,7 +52,7 @@ export function findDuplicateForPair(
       `Same invoice number: ${current.invoiceNumber!.trim()}.`,
     ];
     if (amountMatch) {
-      evidence.push(`Same amount: ${formatRupees(currentAmount!)}.`);
+      evidence.push(`Same amount: ${formatRupees(currentAmount!, current.currency ?? matched.currency ?? "INR")}.`);
     }
 
     return {
@@ -90,7 +90,7 @@ export function findDuplicateForPair(
       evidence: [
         ...baseEvidence(matched.id),
         `Same normalized vendor: ${currentVendor}.`,
-        `Same amount: ${formatRupees(currentAmount!)}.`,
+        `Same amount: ${formatRupees(currentAmount!, current.currency ?? matched.currency ?? "INR")}.`,
         `Invoice dates are ${daysApart} ${daysApart === 1 ? "day" : "days"} apart.`,
       ],
     };
@@ -119,7 +119,7 @@ export function findDuplicateForPair(
     evidence: [
       ...baseEvidence(matched.id),
       `Vendor similarity: ${roundedSimilarity}%.`,
-      `Same amount: ${formatRupees(currentAmount!)}.`,
+      `Same amount: ${formatRupees(currentAmount!, current.currency ?? matched.currency ?? "INR")}.`,
       `Invoice dates are ${daysApart} ${daysApart === 1 ? "day" : "days"} apart.`,
     ],
   };

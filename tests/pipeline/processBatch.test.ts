@@ -4,6 +4,7 @@ import * as XLSX from "xlsx";
 import { describe, expect, it } from "vitest";
 
 import { processBatch } from "../../src/core/pipeline";
+import { defaultFinancePolicy } from "../../src/config/defaultPolicy";
 import { applyReviewAction } from "../../src/core/audit";
 import {
   getAuditEvents,
@@ -69,6 +70,7 @@ const cleanRow = "Contoso,INV-1,2026-09-18,1000,INR,Office,PO-1";
 const fixedOptions = {
   referenceDate: "2026-09-19",
   now: () => new Date("2026-09-19T12:00:00.000Z"),
+  policy: defaultFinancePolicy,
 };
 
 async function processCsv(content: string, storage = new MemoryStorage()) {

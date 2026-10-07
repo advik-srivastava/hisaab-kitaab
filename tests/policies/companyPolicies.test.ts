@@ -1,14 +1,17 @@
 import { File as NodeFile } from "node:buffer";
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import * as XLSX from "xlsx";
 
 import { defaultFinancePolicy } from "../../src/config/defaultPolicy";
-import { processBatch } from "../../src/core/pipeline";
+import { ActivePolicyRequiredError, analyzeBatch, processBatch } from "../../src/core/pipeline";
+import { ingestFiles } from "../../src/core/ingestion";
 import { activatePolicySet, parsePolicyFile } from "../../src/core/policies";
 import { evaluateRules } from "../../src/core/rules";
 import type { FinancePolicy } from "../../src/types/policies";
 import type { Transaction } from "../../src/types/transaction";
-import { loadState, type StorageLike } from "../../src/lib/storage";
+import { getActiveFinancePolicy, loadState, type StorageLike } from "../../src/lib/storage";
 
 const customPolicy: FinancePolicy = {
   ...defaultFinancePolicy,
@@ -58,6 +61,19 @@ function file(contents: string | Uint8Array, name: string): File {
 }
 
 describe("company-specific policies", () => {
+  it("starts without an active policy and rejects analysis without one", async () => {
+    await expect(getActiveFinancePolicy()).resolves.toBeUndefined();
+    await expect(analyzeBatch([
+      file("Vendor,Invoice Number,Invoice Date,Amount,Currency\nContoso,INV-1,2026-09-18,100,INR", "batch.csv"),
+    ])).rejects.toMatchObject({ code: "ACTIVE_POLICY_REQUIRED" });
+  });
+
+  it("does not allow a draft policy to drive analysis", async () => {
+    await expect(analyzeBatch([
+      file("Vendor,Invoice Number,Invoice Date,Amount,Currency\nContoso,INV-1,2026-09-18,100,INR", "batch.csv"),
+    ], { policy: { ...customPolicy, status: "DRAFT" } })).rejects.toBeInstanceOf(ActivePolicyRequiredError);
+  });
+
   it("keeps existing default behavior and applies a custom meal limit", () => {
     expect(rule(defaultFinancePolicy, {}, "LIMIT_MEALS")?.status).toBe("FAIL");
     expect(rule(customPolicy, {}, "LIMIT_MEALS")?.status).toBe("PASS");
@@ -111,6 +127,37 @@ describe("company-specific policies", () => {
         id: `policy-${uploaded.name}`,
       })).resolves.toMatchObject({ companyName: "Acme", supportedCurrencies: ["INR", "USD"], expenseLimits: { Meals: 2500 } });
     }
+  });
+
+  it("validates the downloadable company policy sample", async () => {
+    const contents = await readFile(
+      resolve("public/templates/hisaab-kitaab-company-policy-sample.json"),
+      "utf8",
+    );
+    await expect(parsePolicyFile(file(contents, "sample.json"), {
+      now: "2026-10-07T00:00:00.000Z",
+      id: "sample-policy",
+    })).resolves.toMatchObject({
+      companyName: "Example India Pvt Ltd",
+      status: "DRAFT",
+      purchaseOrderRequiredAbove: 25000,
+    });
+  });
+
+  it("parses every row in the downloadable invoice sample", async () => {
+    const contents = await readFile(
+      resolve("public/templates/hisaab-kitaab-invoice-batch-sample.csv"),
+      "utf8",
+    );
+    const result = await ingestFiles([file(contents, "sample.csv")]);
+    expect(result.fileErrors).toEqual([]);
+    expect(result.transactions).toHaveLength(6);
+    expect(result.transactions[0]).toMatchObject({
+      vendorName: "Apex Office Supplies Pvt Ltd",
+      invoiceNumber: "INV-1001",
+      amount: 12500,
+      currency: "INR",
+    });
   });
 
   it("archives the previous active version when a new policy is activated", () => {

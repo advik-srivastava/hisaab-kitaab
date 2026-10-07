@@ -1,5 +1,9 @@
 import * as XLSX from "xlsx";
-import { financePolicySchema, type FinancePolicy } from "../../types/policies";
+import {
+  financePolicySchema,
+  financePolicyUploadSchema,
+  type FinancePolicy,
+} from "../../types/policies";
 
 type PolicyInput = Partial<FinancePolicy> & Record<string, unknown>;
 
@@ -50,8 +54,7 @@ function normalizePolicyInput(
   now: string,
   id: string,
 ): FinancePolicy {
-  return financePolicySchema.parse({
-    id: text(input.id) ?? id,
+  const businessConfiguration = financePolicyUploadSchema.parse({
     companyName: text(input.companyName),
     policyName: text(input.policyName),
     version: textOrNumber(input.version),
@@ -59,6 +62,10 @@ function normalizePolicyInput(
     expenseLimits: expenseLimits(input),
     purchaseOrderRequiredAbove: number(input.purchaseOrderRequiredAbove),
     requiredFields: input.requiredFields === undefined ? undefined : stringList(input.requiredFields),
+  });
+  return financePolicySchema.parse({
+    ...businessConfiguration,
+    id,
     createdAt: now,
     status: "DRAFT",
   });

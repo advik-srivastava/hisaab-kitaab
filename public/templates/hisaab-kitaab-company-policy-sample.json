@@ -1,0 +1,21 @@
+{
+  "companyName": "Example India Pvt Ltd",
+  "policyName": "Corporate Expense & Accounts Payable Policy",
+  "version": "1.0",
+  "supportedCurrencies": ["INR"],
+  "expenseLimits": {
+    "Meals": 2000,
+    "Taxi": 3000,
+    "Hotel": 10000,
+    "Fuel": 5000,
+    "Office Supplies": 15000
+  },
+  "purchaseOrderRequiredAbove": 25000,
+  "requiredFields": [
+    "vendorName",
+    "invoiceNumber",
+    "invoiceDate",
+    "amount",
+    "currency"
+  ]
+}

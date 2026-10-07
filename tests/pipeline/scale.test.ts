@@ -3,6 +3,7 @@ import { File as NodeFile } from "node:buffer";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { applyReviewAction } from "../../src/core/audit";
+import { defaultFinancePolicy } from "../../src/config/defaultPolicy";
 import {
   findDuplicates,
   type DuplicateDetectionMetrics,
@@ -91,6 +92,7 @@ function generatedCsv(count: number): string {
 const fixedOptions = {
   referenceDate: "2026-09-20",
   now: () => new Date("2026-09-20T12:00:00.000Z"),
+  policy: defaultFinancePolicy,
 };
 
 describe("duplicate candidate blocking at scale", () => {

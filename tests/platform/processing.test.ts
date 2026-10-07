@@ -3,6 +3,7 @@ import { File as NodeFile } from "node:buffer";
 import { describe, expect, it } from "vitest";
 
 import { analyzeBatch } from "../../src/core/pipeline";
+import { defaultFinancePolicy } from "../../src/config/defaultPolicy";
 import { MemoryPlatformRepository } from "../../src/server/platform";
 import { ServerBatchProcessingService } from "../../src/server/processing/service";
 import { fixedNow, principals } from "./fixtures";
@@ -18,7 +19,7 @@ describe("server batch processing composition", () => {
     const repository = new MemoryPlatformRepository();
     const analysis = await analyzeBatch([
       csvFile("Vendor,Invoice,Invoice Date,Amount,Currency,Category\nContoso,INV-1,2026-09-20,2500,INR,Meals"),
-    ], { referenceDate: "2026-09-24", now: () => fixedNow });
+    ], { referenceDate: "2026-09-24", now: () => fixedNow, policy: defaultFinancePolicy });
     const service = new ServerBatchProcessingService(repository, () => fixedNow);
     const batch = await service.persistAnalysis(principals.manager, analysis, [{
       id: "file-server", organizationId: "org-alpha", batchId: analysis.batchId,
@@ -41,7 +42,7 @@ describe("server batch processing composition", () => {
     const repository = new MemoryPlatformRepository();
     const analysis = await analyzeBatch([
       csvFile("Vendor,Invoice,Invoice Date,Amount,Currency\nContoso,INV-1,2026-09-20,100,INR"),
-    ], { referenceDate: "2026-09-24", now: () => fixedNow });
+    ], { referenceDate: "2026-09-24", now: () => fixedNow, policy: defaultFinancePolicy });
     const service = new ServerBatchProcessingService(repository, () => fixedNow);
     await expect(service.persistAnalysis(principals.manager, analysis, [{
       id: "foreign-file", organizationId: "org-beta", batchId: analysis.batchId,

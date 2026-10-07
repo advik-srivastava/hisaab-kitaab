@@ -1,11 +1,10 @@
-import { defaultFinancePolicy } from "../../config/defaultPolicy";
 import { financePolicySchema, type FinancePolicy } from "../../types/policies";
 import { getBrowserPersistence } from "./indexedDb";
 
-export async function getActiveFinancePolicy(): Promise<FinancePolicy> {
+export async function getActiveFinancePolicy(): Promise<FinancePolicy | undefined> {
   const persistence = getBrowserPersistence();
-  if (!persistence) return defaultFinancePolicy;
-  return (await persistence.getActivePolicy()) ?? defaultFinancePolicy;
+  if (!persistence) return undefined;
+  return persistence.getActivePolicy();
 }
 
 export async function listFinancePolicies(): Promise<FinancePolicy[]> {

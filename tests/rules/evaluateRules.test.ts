@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import policies from "../../src/config/policies.json";
+import { defaultFinancePolicy } from "../../src/config/defaultPolicy";
 import { evaluateRules } from "../../src/core/rules";
 import { ruleResultSchema, type RuleResult } from "../../src/types/rules";
 import type { Transaction } from "../../src/types/transaction";
@@ -30,7 +31,7 @@ const cleanTransaction: Transaction = {
 function evaluate(overrides: Partial<Transaction> = {}): RuleResult[] {
   return evaluateRules(
     { ...cleanTransaction, ...overrides },
-    { referenceDate },
+    { referenceDate, policy: defaultFinancePolicy },
   );
 }
 
@@ -216,7 +217,7 @@ describe("evaluateRules", () => {
     const transaction = { ...cleanTransaction, currency: "inr", expenseCategory: "Meals" };
     const before = structuredClone(transaction);
 
-    evaluateRules(transaction, { referenceDate });
+    evaluateRules(transaction, { referenceDate, policy: defaultFinancePolicy });
 
     expect(transaction).toEqual(before);
   });

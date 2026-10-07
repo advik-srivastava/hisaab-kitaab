@@ -25,6 +25,7 @@ import {
   explainExceptionWithAzure,
   type AzureExplainResponse,
 } from "@/lib/azure";
+import { formatCurrency } from "@/lib/formatting";
 
 const monetaryRuleIds = new Set([
   "REQ_AMOUNT",
@@ -35,10 +36,10 @@ const monetaryRuleIds = new Set([
   "PO_REQUIRED",
 ]);
 
-function formatRuleValue(rule: RuleResult, value: unknown): string {
+function formatRuleValue(rule: RuleResult, value: unknown, currency: string): string {
   if (value === null || value === undefined || value === "") return "Not provided";
   if (monetaryRuleIds.has(rule.ruleId) && typeof value === "number" && Number.isFinite(value)) {
-    return `₹${value.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
+    return formatCurrency(value, currency);
   }
   if (Array.isArray(value)) return value.join(", ");
   if (typeof value === "object") return JSON.stringify(value);
@@ -278,7 +279,7 @@ function LocalExceptionDetailPage() {
                 <span className="text-xs font-bold text-text-muted uppercase tracking-widest">Amount</span>
                 <span className="text-lg font-heading font-semibold text-brand-primary">
                   {typeof transaction.amount === "number" && Number.isFinite(transaction.amount)
-                    ? `₹${transaction.amount.toLocaleString()}`
+                    ? formatCurrency(transaction.amount, transaction.currency ?? "INR")
                     : "-"}
                 </span>
               </div>
@@ -317,11 +318,11 @@ function LocalExceptionDetailPage() {
                     <div className="grid grid-cols-2 gap-5">
                       <div className="bg-white border border-panel-border rounded-lg p-4 shadow-sm">
                         <div className="text-xs font-bold text-text-muted uppercase tracking-widest mb-1.5">Expected Limit</div>
-                        <div className="font-heading font-semibold text-text-primary text-lg">{formatRuleValue(rule, rule.expectedValue)}</div>
+                        <div className="font-heading font-semibold text-text-primary text-lg">{formatRuleValue(rule, rule.expectedValue, transaction.currency ?? "INR")}</div>
                       </div>
                       <div className="bg-status-danger-bg border border-status-danger-border rounded-lg p-4 shadow-sm">
                         <div className="text-xs font-bold text-status-danger-text uppercase tracking-widest mb-1.5">Actual Value</div>
-                        <div className="font-heading font-semibold text-status-danger-text text-lg">{formatRuleValue(rule, rule.actualValue)}</div>
+                        <div className="font-heading font-semibold text-status-danger-text text-lg">{formatRuleValue(rule, rule.actualValue, transaction.currency ?? "INR")}</div>
                       </div>
                     </div>
                   </li>
@@ -362,7 +363,7 @@ function LocalExceptionDetailPage() {
                     <div className="text-text-muted text-xs font-bold uppercase tracking-widest">Amount</div>
                     <div className={`text-lg font-heading font-semibold py-1 px-3 -ml-3 rounded-lg inline-block transition-colors ${bestMatch.amountMatch ? "bg-amber-100 text-amber-700 border border-amber-200" : "text-text-primary"}`}>
                       {typeof transaction.amount === "number" && Number.isFinite(transaction.amount)
-                        ? `₹${transaction.amount.toLocaleString()}`
+                        ? formatCurrency(transaction.amount, transaction.currency ?? "INR")
                         : "-"}
                     </div>
                   </div>
@@ -393,7 +394,7 @@ function LocalExceptionDetailPage() {
                     <div className="text-text-muted text-xs font-bold uppercase tracking-widest">Amount</div>
                     <div className={`text-lg font-heading font-semibold py-1 px-3 -ml-3 rounded-lg inline-block transition-colors ${bestMatch.amountMatch ? "bg-amber-100 text-amber-700 border border-amber-200" : "text-text-primary"}`}>
                       {typeof matchedTransaction.amount === "number" && Number.isFinite(matchedTransaction.amount)
-                        ? `₹${matchedTransaction.amount.toLocaleString()}`
+                        ? formatCurrency(matchedTransaction.amount, matchedTransaction.currency ?? "INR")
                         : "-"}
                     </div>
                   </div>

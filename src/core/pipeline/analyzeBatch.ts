@@ -7,16 +7,19 @@ import { ingestFiles } from "../ingestion";
 import { evaluateRules } from "../rules";
 import type { Decision } from "../../types/decisions";
 import type { RuleResult } from "../../types/rules";
-import { defaultFinancePolicy } from "../../config/defaultPolicy";
 import { toPolicySnapshot } from "../../types/policies";
 import { associateDuplicateMatches } from "./associations";
 import { calculateBatchSummary } from "./summary";
 import type { AnalyzeBatchOptions, BatchAnalysisResult } from "./types";
+import { ActivePolicyRequiredError } from "./errors";
 
 export async function analyzeBatch(
   files: readonly File[],
   options: AnalyzeBatchOptions = {},
 ): Promise<BatchAnalysisResult> {
+  if (!options.policy || options.policy.status !== "ACTIVE") {
+    throw new ActivePolicyRequiredError();
+  }
   const processingStarted = performance.now();
   options.onProgress?.({ stage: "READING_FILES" });
   const ingestion = await ingestFiles(files);
@@ -27,7 +30,7 @@ export async function analyzeBatch(
     total: ingestion.transactions.length,
   });
   const now = options.now ?? (() => new Date());
-  const policy = options.policy ?? defaultFinancePolicy;
+  const policy = options.policy;
   const createdAt = ingestion.transactions[0]?.createdAt ?? now().toISOString();
   const ruleResults: Record<string, RuleResult[]> = {};
 

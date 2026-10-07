@@ -1,0 +1,7 @@
+Vendor,Invoice Number,Invoice Date,Amount,Currency,Expense Category,Employee ID,Department,Purchase Order,Description
+Apex Office Supplies Pvt Ltd,INV-1001,2026-10-01,12500,INR,Office Supplies,EMP-101,Finance,,Office stationery
+Metro Cab Services,INV-1002,2026-10-02,2800,INR,Taxi,EMP-102,Sales,,Airport taxi
+Crestline Hotels Pvt Ltd,INV-1003,2026-10-03,9500,INR,Hotel,EMP-103,Operations,,Business travel hotel
+Enterprise Supplier Pvt Ltd,INV-1004,2026-10-04,28300,INR,Office Supplies,EMP-104,Procurement,,High-value purchase without PO
+Urban Foods Pvt Ltd,INV-1005,2026-10-05,2600,INR,Meals,EMP-105,Marketing,,Client meal
+Bright Fuel Services,INV-1006,2026-10-05,4200,INR,Fuel,EMP-106,Logistics,PO-4401,Fleet fuel

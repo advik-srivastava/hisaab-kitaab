@@ -4,9 +4,12 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { MetricCard } from "@/components/MetricCard";
 import { StatusBadge } from "@/components/StatusBadge";
-import { loadStateAsync, type PersistedState } from "@/lib/storage";
+import { getActiveFinancePolicy, loadStateAsync, type PersistedState } from "@/lib/storage";
 import { DecisionStatus } from "@/types/decisions";
 import { ServerDashboard } from "@/components/ServerDashboard";
+import { PolicyRequiredState } from "@/components/PolicyRequiredState";
+import type { FinancePolicy } from "@/types/policies";
+import { formatCurrency, formatIndianNumber, formatINR } from "@/lib/formatting";
 
 export default function DashboardPage() {
   return process.env.NEXT_PUBLIC_APP_MODE === "SERVER" ? <ServerDashboard /> : <LocalDashboardPage />;
@@ -14,18 +17,24 @@ export default function DashboardPage() {
 
 function LocalDashboardPage() {
   const [state, setState] = useState<PersistedState | null>(null);
+  const [activePolicy, setActivePolicy] = useState<FinancePolicy>();
+  const [policyLoaded, setPolicyLoaded] = useState(false);
 
   useEffect(() => {
     let active = true;
-    void loadStateAsync().then((loaded) => {
-      if (active) setState(loaded);
+    void Promise.all([loadStateAsync(), getActiveFinancePolicy()]).then(([loaded, policy]) => {
+      if (active) {
+        setState(loaded);
+        setActivePolicy(policy);
+        setPolicyLoaded(true);
+      }
     });
     return () => {
       active = false;
     };
   }, []);
 
-  if (!state) {
+  if (!state || !policyLoaded) {
     return (
       <div className="flex justify-center p-12">
         <div className="text-text-secondary animate-pulse">Loading dashboard...</div>
@@ -36,6 +45,7 @@ function LocalDashboardPage() {
   const batch = state.currentBatch;
 
   if (!batch) {
+    if (!activePolicy) return <div className="mt-12"><PolicyRequiredState /></div>;
     return (
       <div className="max-w-3xl mx-auto mt-12 relative z-10">
         <div className="card p-12 text-center flex flex-col items-center">
@@ -105,10 +115,10 @@ function LocalDashboardPage() {
               Workload Reduction
             </h3>
             <div className="text-4xl md:text-5xl font-bold text-text-primary mb-3 tracking-tight">
-              {summary.autoPassed.toLocaleString()} <span className="text-2xl text-text-muted font-normal tracking-normal">cleared automatically</span>
+              {formatIndianNumber(summary.autoPassed)} <span className="text-2xl text-text-muted font-normal tracking-normal">cleared automatically</span>
             </div>
             <p className="text-base text-text-secondary mb-10 max-w-xl">
-              <strong className="text-brand-primary font-semibold">{summary.needsReview + summary.highRisk}</strong> exceptions require Finance attention out of {summary.totalProcessed.toLocaleString()} total transactions.
+              <strong className="text-brand-primary font-semibold">{formatIndianNumber(summary.needsReview + summary.highRisk)}</strong> exceptions require Finance attention out of {formatIndianNumber(summary.totalProcessed)} total transactions.
             </p>
             
             <div className="relative">
@@ -145,12 +155,12 @@ function LocalDashboardPage() {
             <div className="space-y-8">
               <div>
                 <p className="text-sm text-white/70 mb-1">Total Processed</p>
-                <p className="text-4xl font-bold text-white">{summary.totalProcessed.toLocaleString()}</p>
+                <p className="text-4xl font-bold text-white">{formatIndianNumber(summary.totalProcessed)}</p>
               </div>
               <div className="pt-8 border-t border-white/10">
                 <p className="text-sm text-white/70 mb-1">Potential Exposure</p>
                 <p className="text-4xl font-bold text-white">
-                  ₹{summary.potentialExposure.toLocaleString()}
+                  {formatINR(summary.potentialExposure)}
                 </p>
               </div>
             </div>
@@ -228,7 +238,7 @@ function LocalDashboardPage() {
                         <div className="flex items-center gap-8">
                           <div className="text-base font-heading font-semibold text-text-primary">
                             {typeof ex.amount === "number" && Number.isFinite(ex.amount)
-                              ? `₹${ex.amount.toLocaleString()}`
+                              ? formatCurrency(ex.amount, ex.currency ?? "INR")
                               : "-"}
                           </div>
                           <div className="text-brand-primary opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-[240ms] ease-[cubic-bezier(.22,1,.36,1)]">

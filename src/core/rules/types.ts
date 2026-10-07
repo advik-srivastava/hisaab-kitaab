@@ -4,7 +4,7 @@ import type { FinancePolicy } from "../../types/policies";
 
 export interface RuleEvaluationOptions {
   referenceDate?: Date | string;
-  policy?: FinancePolicy;
+  policy: FinancePolicy;
 }
 
 export interface RuleContext {

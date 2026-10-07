@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { LocalPolicyAdmin } from "@/components/LocalPolicyAdmin";
+import { formatINR } from "@/lib/formatting";
 import type { PolicyDefinition, PolicySetRecord, PolicyState } from "@/server/platform/types";
 
 const allRequiredFields: PolicyDefinition["requiredFields"] = ["vendorName", "invoiceNumber", "invoiceDate", "amount", "currency"];
@@ -58,7 +59,7 @@ export default function PoliciesPage() {
         <button className="btn-primary" disabled={saving} onClick={() => void saveVersion()}>{saving ? "Saving..." : "Save version"}</button>
         {message && <p aria-live="polite" className="text-sm text-text-secondary">{message}</p>}
       </section>
-      <section className="card divide-y divide-panel-border" aria-label="Policy history">{items?.map((policy) => <div key={policy.id} className="p-6 flex items-center justify-between gap-4"><div><p className="font-bold">{policy.name}</p><p className="text-sm text-text-secondary">Policy v{policy.version}{policy.effectiveAt ? ` · Effective ${new Date(policy.effectiveAt).toLocaleDateString()}` : ""}</p><p className="text-xs text-text-muted mt-1">INR limits: Meals {policy.definition.expenseLimits.Meals.toLocaleString()} · Taxi {policy.definition.expenseLimits.Taxi.toLocaleString()} · Hotel {policy.definition.expenseLimits.Hotel.toLocaleString()} · PO {policy.definition.purchaseOrderRequiredAbove.toLocaleString()}</p></div><span className="text-xs font-bold px-3 py-1 rounded-full border border-panel-border">{policy.state}</span></div>)}{items?.length === 0 && <p className="p-8 text-text-secondary">No policies configured.</p>}</section>
+      <section className="card divide-y divide-panel-border" aria-label="Policy history">{items?.map((policy) => <div key={policy.id} className="p-6 flex items-center justify-between gap-4"><div><p className="font-bold">{policy.name}</p><p className="text-sm text-text-secondary">Policy v{policy.version}{policy.effectiveAt ? ` · Effective ${new Date(policy.effectiveAt).toLocaleDateString()}` : ""}</p><p className="text-xs text-text-muted mt-1">INR limits: Meals {formatINR(policy.definition.expenseLimits.Meals)} · Taxi {formatINR(policy.definition.expenseLimits.Taxi)} · Hotel {formatINR(policy.definition.expenseLimits.Hotel)} · PO {formatINR(policy.definition.purchaseOrderRequiredAbove)}</p></div><span className="text-xs font-bold px-3 py-1 rounded-full border border-panel-border">{policy.state}</span></div>)}{items?.length === 0 && <p className="p-8 text-text-secondary">No policies configured.</p>}</section>
     </div>
   );
 }

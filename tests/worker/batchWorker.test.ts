@@ -1,6 +1,7 @@
 import { File as NodeFile } from "node:buffer";
 
 import { describe, expect, it } from "vitest";
+import { defaultFinancePolicy } from "../../src/config/defaultPolicy";
 
 import {
   analyzeBatch,
@@ -37,6 +38,7 @@ function generatedCsv(count: number): string {
 const workerOptions = {
   referenceDate: "2026-09-20",
   nowIso: "2026-09-20T12:00:00.000Z",
+  policy: defaultFinancePolicy,
 };
 
 async function executeWorker(files: File[]): Promise<{
@@ -100,6 +102,7 @@ describe("batch analysis worker", () => {
         referenceDate: "2026-09-20",
         now: () => new Date(workerOptions.nowIso),
         persistence,
+        policy: defaultFinancePolicy,
         workerFactory: () => worker,
       },
       ({ stage }) => stages.push(stage),
@@ -139,6 +142,7 @@ describe("batch analysis worker", () => {
       const direct = await analyzeBatch([csvFile(csv)], {
         referenceDate: workerOptions.referenceDate,
         now: () => new Date(workerOptions.nowIso),
+        policy: defaultFinancePolicy,
       });
       const worker = await executeWorker([csvFile(csv)]);
 
@@ -163,6 +167,7 @@ describe("batch analysis worker", () => {
     ].join("\n");
     const direct = await analyzeBatch([csvFile(csv)], {
       referenceDate: workerOptions.referenceDate,
+      policy: defaultFinancePolicy,
     });
     const worker = await executeWorker([csvFile(csv)]);
 
@@ -181,6 +186,7 @@ describe("batch analysis worker", () => {
     const result = await processBatchInWorker([csvFile(generatedCsv(1))], {
       referenceDate: workerOptions.referenceDate,
       persistence,
+      policy: defaultFinancePolicy,
       workerFactory: () => { throw new Error("Worker unavailable"); },
     });
 
@@ -195,6 +201,7 @@ describe("batch analysis worker", () => {
     };
 
     await expect(processBatchInWorker([csvFile(generatedCsv(1))], {
+      policy: defaultFinancePolicy,
       workerFactory: () => worker,
     })).rejects.toBeInstanceOf(WorkerProcessingError);
     expect(worker.terminated).toBe(true);

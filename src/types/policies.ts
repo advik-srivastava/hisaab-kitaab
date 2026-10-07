@@ -2,8 +2,7 @@ import { z } from "zod";
 
 export const policyStatusSchema = z.enum(["DRAFT", "ACTIVE", "ARCHIVED"]);
 
-export const financePolicySchema = z.object({
-  id: z.string().trim().min(1, "Policy ID is required."),
+export const financePolicyUploadSchema = z.object({
   companyName: z.string().trim().min(1, "Company name is required."),
   policyName: z.string().trim().min(1, "Policy name is required."),
   version: z.string().trim().min(1, "Policy version is required."),
@@ -18,7 +17,17 @@ export const financePolicySchema = z.object({
   purchaseOrderRequiredAbove: z.number().finite().positive(
     "The purchase-order threshold must be a positive number.",
   ),
-  requiredFields: z.array(z.string().trim().min(1)).optional(),
+  requiredFields: z.array(z.enum([
+    "vendorName",
+    "invoiceNumber",
+    "invoiceDate",
+    "amount",
+    "currency",
+  ])).optional(),
+});
+
+export const financePolicySchema = financePolicyUploadSchema.extend({
+  id: z.string().trim().min(1, "Policy ID is required."),
   createdAt: z.string().datetime(),
   activatedAt: z.string().datetime().optional(),
   status: policyStatusSchema,
@@ -36,6 +45,7 @@ export const policySnapshotSchema = financePolicySchema.pick({
 });
 
 export type FinancePolicy = z.infer<typeof financePolicySchema>;
+export type FinancePolicyUpload = z.infer<typeof financePolicyUploadSchema>;
 export type PolicySnapshot = z.infer<typeof policySnapshotSchema>;
 export type PolicyStatus = z.infer<typeof policyStatusSchema>;
 

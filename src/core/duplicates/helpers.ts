@@ -1,6 +1,7 @@
 import { fuzzy } from "fast-fuzzy";
 
 import type { Transaction } from "../../types/transaction";
+import { formatCurrency } from "../../lib/formatting";
 
 const DAY_IN_MILLISECONDS = 24 * 60 * 60 * 1000;
 
@@ -88,8 +89,6 @@ export function dateDifferenceDays(
   return Math.abs(firstDate - secondDate) / DAY_IN_MILLISECONDS;
 }
 
-export function formatRupees(amount: number): string {
-  return `₹${new Intl.NumberFormat("en-IN", {
-    maximumFractionDigits: 2,
-  }).format(amount)}`;
+export function formatRupees(amount: number, currency = "INR"): string {
+  return formatCurrency(amount, currency);
 }
