@@ -166,12 +166,12 @@ export default function UploadPage() {
         <p className="text-lg text-text-secondary max-w-2xl mx-auto">
           Securely process your Finance batch (CSV or XLSX) to instantly identify policy exceptions and duplicate transactions.
         </p>
-        {!serverMode && activePolicy && <div className="mt-5 inline-flex flex-col rounded-xl border border-brand-primary/20 bg-brand-primary/5 px-5 py-3 text-left"><span className="text-[10px] font-bold uppercase tracking-widest text-brand-primary">Active Policy</span><span className="mt-1 text-sm font-bold text-text-primary">{activePolicy.companyName}</span><span className="text-xs text-text-secondary">{activePolicy.policyName} • v{activePolicy.version}</span></div>}
+        {!serverMode && activePolicy && <div className="mt-5 inline-flex flex-col rounded-xl border border-neutral-900/20 bg-neutral-900/5 px-5 py-3 text-left"><span className="text-[10px] font-bold uppercase tracking-widest text-neutral-900">Active Policy</span><span className="mt-1 text-sm font-bold text-text-primary">{activePolicy.companyName}</span><span className="text-xs text-text-secondary">{activePolicy.policyName} • v{activePolicy.version}</span></div>}
       </div>
 
       {!serverMode && policyLoaded && !activePolicy && <div className="mb-8"><PolicyRequiredState compact /></div>}
 
-      <div className="card p-8 sm:p-14 text-center relative overflow-hidden bg-white shadow-xl shadow-brand-primary/5 border-panel-border/80">
+      <div className="card p-8 sm:p-14 text-center relative overflow-hidden bg-white shadow-sm shadow-brand-primary/5 border-border-default/80">
         <div className="max-w-lg mx-auto relative z-10">
           <input
             ref={fileInputRef}
@@ -187,10 +187,10 @@ export default function UploadPage() {
           <div
             className={`flex flex-col items-center justify-center rounded-2xl border-2 border-dashed px-8 py-16 transition-all duration-[240ms] ease-[cubic-bezier(.22,1,.36,1)] ${
               isProcessing 
-                ? "border-panel-border bg-slate-50/50 opacity-60 cursor-not-allowed" 
+                ? "border-border-default bg-slate-50/50 opacity-60 cursor-not-allowed" 
                 : isDragging
-                  ? "border-brand-primary bg-brand-primary/10 shadow-[0_0_30px_rgba(59,130,246,0.15)] cursor-copy"
-                  : "border-brand-primary/20 bg-brand-primary/[0.02] hover:border-brand-primary/50 hover:bg-brand-primary/[0.04] cursor-pointer"
+                  ? "border-neutral-900 bg-neutral-900/10 shadow-sm cursor-copy"
+                  : "border-neutral-900/20 bg-neutral-900/[0.02] hover:border-neutral-900/50 hover:bg-neutral-900/[0.04] cursor-pointer"
             }`}
             role="button"
             tabIndex={isProcessing ? -1 : 0}
@@ -209,9 +209,9 @@ export default function UploadPage() {
             onDragOver={isProcessing ? undefined : handleDragOver}
           >
             <div className="text-center flex flex-col items-center">
-              <div className="mb-6 flex items-center justify-center rounded-full bg-white shadow-sm border border-brand-primary/10 p-4">
+              <div className="mb-6 flex items-center justify-center rounded-full bg-white shadow-sm border border-neutral-900/10 p-4">
                 <svg
-                  className="h-10 w-10 text-brand-primary"
+                  className="h-10 w-10 text-neutral-900"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -225,7 +225,7 @@ export default function UploadPage() {
                 </svg>
               </div>
               <div className="flex text-base leading-6 text-text-primary font-medium justify-center items-center gap-1">
-                <span className={`relative rounded-md font-bold text-brand-primary transition-colors ${isProcessing ? "opacity-60" : "hover:text-brand-primary/80"}`}>Select a file</span>
+                <span className={`relative rounded-md font-bold text-neutral-900 transition-colors ${isProcessing ? "opacity-60" : "hover:text-neutral-900/80"}`}>Select a file</span>
                 <p>or drag and drop it here</p>
               </div>
               <p className="text-sm text-text-secondary mt-3">
@@ -239,20 +239,20 @@ export default function UploadPage() {
           <div className="mt-10 max-w-lg mx-auto text-left relative z-10">
             <h4 className="text-sm font-semibold text-text-primary flex items-center justify-between">
               <span>Selected Files</span>
-              <span className="text-xs font-bold text-brand-primary bg-brand-primary/10 border border-brand-primary/20 px-3 py-1 rounded-full">{files.length} file{files.length !== 1 && 's'}</span>
+              <span className="text-xs font-bold text-neutral-900 bg-neutral-900/10 border border-neutral-900/20 px-3 py-1 rounded-full">{files.length} file{files.length !== 1 && 's'}</span>
             </h4>
             <ul className="mt-4 space-y-3">
               {files.map((file, idx) => (
                 <li
                   key={idx}
-                  className="flex items-center justify-between bg-panel px-4 py-4 rounded-xl border border-panel-border hover:border-panel-border-hover transition-colors shadow-sm"
+                  className="flex items-center justify-between bg-surface-elevated px-4 py-4 rounded-xl border border-border-default hover:border-border-default transition-colors shadow-sm"
                 >
                   <div className="flex items-center">
                     <div
-                      className={`h-12 w-12 rounded-lg flex items-center justify-center text-xs font-bold shadow-inner ${
+                      className={`h-12 w-12 rounded-lg flex items-center justify-center text-xs font-bold  ${
                         file.name.endsWith(".csv")
-                          ? "bg-status-success-bg text-status-success-text border border-status-success-border"
-                          : "bg-brand-primary/10 text-brand-primary border border-brand-primary/20"
+                          ? "bg-green-50 text-green-500 border border-green-200"
+                          : "bg-neutral-900/10 text-neutral-900 border border-neutral-900/20"
                       }`}
                     >
                       {file.name.split(".").pop()?.toUpperCase()}
@@ -268,7 +268,7 @@ export default function UploadPage() {
                   </div>
                   <button
                     onClick={() => removeFile(idx)}
-                    className="text-text-muted hover:text-status-danger-text hover:bg-status-danger-bg p-2 rounded-lg transition-colors focus:outline-none"
+                    className="text-text-muted hover:text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors focus:outline-none"
                     disabled={isProcessing}
                     aria-label="Remove file"
                   >
@@ -283,7 +283,7 @@ export default function UploadPage() {
         )}
 
         {error && (
-          <div className="mt-8 max-w-lg mx-auto bg-status-danger-bg border border-status-danger-border text-status-danger-text px-5 py-4 rounded-xl text-sm text-left flex flex-col gap-3 shadow-[0_0_20px_rgba(239,68,68,0.1)] relative z-10">
+          <div className="mt-8 max-w-lg mx-auto bg-red-50 border border-red-200 text-red-500 px-5 py-4 rounded-xl text-sm text-left flex flex-col gap-3 shadow-sm relative z-10">
             <div className="flex items-start gap-3">
               <svg className="w-5 h-5 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -322,7 +322,7 @@ export default function UploadPage() {
           </div>
         )}
 
-        {notice && <div role="status" className="mt-8 max-w-lg mx-auto bg-status-success-bg border border-status-success-border text-status-success-text px-5 py-4 rounded-xl text-sm text-left relative z-10"><p className="font-bold">Processing queued</p><p className="mt-1">{notice}</p><p className="mt-1 opacity-80">The server worker will publish results and notifications when configured processing completes.</p></div>}
+        {notice && <div role="status" className="mt-8 max-w-lg mx-auto bg-green-50 border border-green-200 text-green-500 px-5 py-4 rounded-xl text-sm text-left relative z-10"><p className="font-bold">Processing queued</p><p className="mt-1">{notice}</p><p className="mt-1 opacity-80">The server worker will publish results and notifications when configured processing completes.</p></div>}
 
         <div className="mt-12 flex flex-col items-center relative z-10">
           <button
@@ -330,9 +330,9 @@ export default function UploadPage() {
             disabled={files.length === 0 || isProcessing || (!serverMode && (!policyLoaded || !activePolicy))}
             className={`btn-primary w-full sm:w-auto min-w-[240px] h-12 text-base ${
               files.length === 0 || (!serverMode && (!policyLoaded || !activePolicy))
-                ? "opacity-50 cursor-not-allowed hover:shadow-none hover:bg-brand-primary"
+                ? "opacity-50 cursor-not-allowed hover:shadow-none hover:bg-neutral-900"
                 : isProcessing
-                ? "cursor-wait opacity-90 hover:shadow-[0_0_20px_var(--color-brand-glow)]"
+                ? "cursor-wait opacity-90 hover:shadow-sm"
                 : ""
             }`}
           >
@@ -348,11 +348,11 @@ export default function UploadPage() {
               "Analyze Batch"
             )}
           </button>
-          {!serverMode && policyLoaded && !activePolicy && <p className="mt-3 text-sm font-medium text-status-warning-text">Activate a company policy before analyzing invoices.</p>}
-          <div className="mt-7 border-t border-panel-border pt-6 text-center">
+          {!serverMode && policyLoaded && !activePolicy && <p className="mt-3 text-sm font-medium text-amber-500">Activate a company policy before analyzing invoices.</p>}
+          <div className="mt-7 border-t border-border-default pt-6 text-center">
             <p className="text-xs font-bold uppercase tracking-widest text-text-muted">Need a template?</p>
             <div className="mt-3 flex flex-wrap justify-center gap-3">
-              <a className="text-sm font-bold text-brand-primary hover:underline" href="/templates/hisaab-kitaab-invoice-batch-sample.csv" download>Download Sample CSV</a>
+              <a className="text-sm font-bold text-neutral-900 hover:underline" href="/templates/hisaab-kitaab-invoice-batch-sample.csv" download>Download Sample CSV</a>
               <a className="text-sm font-bold text-text-secondary hover:text-text-primary" href="/templates/hisaab-kitaab-invoice-batch-sample.csv" target="_blank">View Required Columns</a>
             </div>
           </div>

@@ -29,7 +29,7 @@ export default function MyQueuePage() {
   }, [serverMode]);
 
   if (!serverMode) return <ServerModeNotice feature="My Queue" />;
-  if (error) return <p role="alert" className="text-status-danger-text">{error}</p>;
+  if (error) return <p role="alert" className="text-red-500">{error}</p>;
   if (!queues) return <p className="text-text-secondary">Loading My Queue...</p>;
   const { remaining, reviewed } = queues;
   return (
@@ -42,7 +42,7 @@ export default function MyQueuePage() {
       </div>
       <div className="card divide-y divide-panel-border">
         {remaining.items.length === 0 ? <p className="p-8 text-text-secondary">No assigned exceptions remain.</p> : remaining.items.map(({ transaction, decision }) => (
-          <Link key={transaction.id} href={`/exceptions/${transaction.id}`} className="p-5 flex items-center justify-between hover:bg-panel-hover">
+          <Link key={transaction.id} href={`/exceptions/${transaction.id}`} className="p-5 flex items-center justify-between hover:bg-surface-hover">
             <div><p className="font-bold">{transaction.vendorName ?? "Unknown vendor"}</p><p className="text-sm text-text-secondary">{transaction.invoiceNumber ?? transaction.id}</p></div>
             <StatusBadge status={decision.status} />
           </Link>

@@ -21,13 +21,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [mode, user]);
 
   if (pathname === "/login") {
-    return <main className="min-h-screen bg-canvas">{children}</main>;
+    return <main className="min-h-screen bg-surface-primary">{children}</main>;
   }
   if (mode === "SERVER" && loading) {
-    return <main className="min-h-screen bg-canvas flex items-center justify-center text-text-secondary">Loading secure workspace...</main>;
+    return <main className="min-h-screen bg-surface-primary flex items-center justify-center text-text-secondary">Loading secure workspace...</main>;
   }
   if (mode === "SERVER" && !user) {
-    return <main className="min-h-screen bg-canvas flex items-center justify-center text-text-secondary">Redirecting to sign in...</main>;
+    return <main className="min-h-screen bg-surface-primary flex items-center justify-center text-text-secondary">Redirecting to sign in...</main>;
   }
 
   const navigation = [
@@ -52,10 +52,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-canvas overflow-hidden">
+    <div className="min-h-screen flex flex-col md:flex-row bg-surface-primary overflow-hidden">
       <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 btn-primary">Skip to content</a>
       {/* Sidebar */}
-      <nav className="w-full md:w-72 bg-panel border-b md:border-b-0 md:border-r border-panel-border flex flex-col z-20 shrink-0">
+      <nav className="w-full md:w-72 bg-surface-secondary border-b md:border-b-0 md:border-r border-border-subtle flex flex-col z-20 shrink-0">
         <div className="p-6 md:p-8">
           <Link href="/dashboard" className="block hover:opacity-80 transition-opacity max-w-[160px]">
             <Image 
@@ -79,13 +79,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Link
                 key={item.name}
                 href={item.href}
-                className={`px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-[180ms] ease-[cubic-bezier(.22,1,.36,1)] flex items-center gap-3 ${
+                className={`px-4 py-3 rounded-lg text-sm font-semibold transition-all duration-[200ms] ease-[cubic-bezier(.22,1,.36,1)] flex items-center gap-3 ${
                   isActive
-                    ? "bg-brand-primary/5 text-brand-primary shadow-sm ring-1 ring-brand-primary/20"
-                    : "text-text-secondary hover:bg-panel-hover hover:text-text-primary"
+                    ? "bg-neutral-900 text-white shadow-sm"
+                    : "text-text-secondary hover:bg-surface-elevated hover:text-text-primary"
                 }`}
               >
-                <svg className="w-5 h-5 opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg className="w-5 h-5 opacity-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
                 </svg>
                 {item.name}
@@ -95,8 +95,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
         
         {/* Authenticated context remains available in Server mode only. */}
-        {mode === "SERVER" && user && <div className="p-6 border-t border-panel-border mt-auto hidden md:flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-panel-hover border border-panel-border flex items-center justify-center text-text-primary font-bold">
+        {mode === "SERVER" && user && <div className="p-6 border-t border-border-subtle mt-auto hidden md:flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-surface-elevated border border-border-subtle flex items-center justify-center text-text-primary font-bold">
             {(user?.displayName ?? "Local Demo").charAt(0).toUpperCase()}
           </div>
           <div className="min-w-0 flex-1">
@@ -110,9 +110,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col h-screen overflow-hidden relative">
         {/* Top Utility / Context Bar */}
-        <header className="h-16 border-b border-panel-border bg-canvas/80 backdrop-blur-xl flex items-center justify-between px-6 md:px-10 shrink-0 z-10">
+        <header className="h-16 border-b border-border-subtle bg-surface-primary flex items-center justify-between px-6 md:px-10 shrink-0 z-10">
           <div className="flex items-center gap-4">
-             <div className="text-xs font-medium text-text-secondary px-2.5 py-1 rounded-full border border-panel-border bg-panel">
+             <div className="text-xs font-medium text-text-secondary px-2.5 py-1 rounded-full border border-border-subtle bg-surface-elevated">
                Environment: {mode === "SERVER" ? "Server" : "Local Demo"}
              </div>
           </div>
@@ -121,20 +121,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                </svg>
-               {notifications.length > 0 && <span className="absolute -right-2 -top-2 min-w-4 h-4 px-1 rounded-full bg-status-danger-text text-[10px] leading-4 text-white">{Math.min(notifications.length, 99)}</span>}
+               {notifications.length > 0 && <span className="absolute -right-2 -top-2 min-w-4 h-4 px-1 rounded-full bg-red-500 text-[10px] leading-4 text-white font-bold">{Math.min(notifications.length, 99)}</span>}
              </button>
-             {showNotifications && <div className="absolute right-0 top-9 w-80 card overflow-hidden shadow-2xl z-50"><p className="px-4 py-3 font-bold border-b border-panel-border">Notifications</p>{notifications.length === 0 ? <p className="p-4 text-sm text-text-secondary">No notifications.</p> : notifications.slice(0, 8).map((notification) => <div key={notification.id} className="px-4 py-3 border-b border-panel-border last:border-0"><p className="text-sm font-semibold">{notification.title}</p><p className="text-xs text-text-secondary mt-1">{notification.message}</p><p className="text-[10px] text-text-muted mt-1">{new Date(notification.createdAt).toLocaleString()}</p></div>)}</div>}
+             {showNotifications && <div className="absolute right-0 top-9 w-80 card overflow-hidden shadow-sm z-50"><p className="px-4 py-3 font-bold border-b border-border-subtle">Notifications</p>{notifications.length === 0 ? <p className="p-4 text-sm text-text-secondary">No notifications.</p> : notifications.slice(0, 8).map((notification) => <div key={notification.id} className="px-4 py-3 border-b border-border-subtle last:border-0"><p className="text-sm font-semibold">{notification.title}</p><p className="text-xs text-text-secondary mt-1">{notification.message}</p><p className="text-[10px] text-text-muted mt-1">{new Date(notification.createdAt).toLocaleString()}</p></div>)}</div>}
           </div>
         </header>
 
-        {/* Dynamic Canvas Background Effect */}
-        <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
-          <div className="absolute -top-[20%] -right-[10%] w-[50%] h-[50%] rounded-full bg-brand-primary/10 blur-[120px]" />
-          <div className="absolute bottom-[10%] -left-[10%] w-[40%] h-[40%] rounded-full bg-brand-primary/5 blur-[100px]" />
-        </div>
-
         {/* Page Content */}
-        <main id="main-content" className="flex-1 overflow-y-auto z-10 relative custom-scrollbar">
+        <main id="main-content" className="flex-1 overflow-y-auto z-10 relative custom-scrollbar bg-surface-primary">
           <div className="p-6 md:p-10 max-w-7xl mx-auto w-full">
             {children}
           </div>

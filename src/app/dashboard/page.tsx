@@ -49,7 +49,7 @@ function LocalDashboardPage() {
     return (
       <div className="max-w-3xl mx-auto mt-12 relative z-10">
         <div className="card p-12 text-center flex flex-col items-center">
-          <div className="w-20 h-20 bg-panel border border-panel-border rounded-full flex items-center justify-center mb-6 shadow-inner">
+          <div className="w-20 h-20 bg-surface-elevated border border-border-default rounded-full flex items-center justify-center mb-6 ">
             <svg className="w-10 h-10 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
             </svg>
@@ -104,25 +104,25 @@ function LocalDashboardPage() {
         <p className="mt-2 text-base text-text-secondary">
           Overview of the latest analyzed batch.
         </p>
-        {batch.policySnapshot && <p className="mt-3 text-xs font-bold text-brand-primary">Policy: {batch.policySnapshot.policyName} v{batch.policySnapshot.version}</p>}
+        {batch.policySnapshot && <p className="mt-3 text-xs font-bold text-neutral-900">Policy: {batch.policySnapshot.policyName} v{batch.policySnapshot.version}</p>}
       </div>
 
       {/* Hero Analytics Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="card p-8 lg:col-span-2 flex flex-col justify-center relative overflow-hidden bg-gradient-to-br from-panel to-slate-50 border-brand-primary/10">
+        <div className="card p-8 lg:col-span-2 flex flex-col justify-center relative overflow-hidden bg-gradient-to-br from-panel to-slate-50 border-neutral-900/10">
           <div className="relative z-10">
-            <h3 className="text-xs font-bold text-brand-primary uppercase tracking-widest mb-4">
+            <h3 className="text-xs font-bold text-neutral-900 uppercase tracking-widest mb-4">
               Workload Reduction
             </h3>
             <div className="text-4xl md:text-5xl font-bold text-text-primary mb-3 tracking-tight">
               {formatIndianNumber(summary.autoPassed)} <span className="text-2xl text-text-muted font-normal tracking-normal">cleared automatically</span>
             </div>
             <p className="text-base text-text-secondary mb-10 max-w-xl">
-              <strong className="text-brand-primary font-semibold">{formatIndianNumber(summary.needsReview + summary.highRisk)}</strong> exceptions require Finance attention out of {formatIndianNumber(summary.totalProcessed)} total transactions.
+              <strong className="text-neutral-900 font-semibold">{formatIndianNumber(summary.needsReview + summary.highRisk)}</strong> exceptions require Finance attention out of {formatIndianNumber(summary.totalProcessed)} total transactions.
             </p>
             
             <div className="relative">
-              <div className="flex h-6 rounded-md overflow-hidden bg-panel border border-panel-border shadow-sm">
+              <div className="flex h-6 rounded-md overflow-hidden bg-surface-elevated border border-border-default shadow-sm">
                 <div className="bg-status-success-text hover:bg-emerald-500 transition-all duration-[320ms] ease-[cubic-bezier(.22,1,.36,1)]" style={{ width: `${autoPassPct}%` }} title={`Auto Pass (${summary.autoPassed})`}></div>
                 <div className="bg-status-warning-text hover:bg-amber-400 transition-all duration-[320ms] ease-[cubic-bezier(.22,1,.36,1)]" style={{ width: `${reviewPct}%` }} title={`Review (${summary.needsReview})`}></div>
                 <div className="bg-status-danger-text hover:bg-red-400 transition-all duration-[320ms] ease-[cubic-bezier(.22,1,.36,1)]" style={{ width: `${highRiskPct}%` }} title={`High Risk (${summary.highRisk})`}></div>
@@ -144,10 +144,10 @@ function LocalDashboardPage() {
             </div>
           </div>
           {/* Subtle Background Accent */}
-          <div className="absolute top-0 right-0 w-80 h-80 bg-brand-primary/[0.03] rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
+          <div className="absolute top-0 right-0 w-80 h-80 bg-neutral-900/[0.03] rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
         </div>
 
-        <div className="card p-8 flex flex-col justify-center bg-brand-primary text-white border-brand-primary shadow-lg relative overflow-hidden">
+        <div className="card p-8 flex flex-col justify-center bg-neutral-900 text-white border-neutral-900 shadow-lg relative overflow-hidden">
           <div className="relative z-10">
             <h3 className="text-xs font-bold text-brand-secondary uppercase tracking-widest mb-6">
               Key Metrics
@@ -191,7 +191,7 @@ function LocalDashboardPage() {
           </h2>
           <Link
             href="/exceptions"
-            className="text-sm font-semibold text-brand-primary hover:text-brand-primary/80 transition-colors flex items-center gap-1"
+            className="text-sm font-semibold text-neutral-900 hover:text-neutral-900/80 transition-colors flex items-center gap-1"
           >
             View all exceptions
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -202,8 +202,8 @@ function LocalDashboardPage() {
         <div className="card overflow-hidden">
           {priorityExceptions.length === 0 ? (
             <div className="p-12 text-center text-sm text-text-secondary flex flex-col items-center">
-              <div className="w-16 h-16 bg-status-success-bg border border-status-success-border rounded-full flex items-center justify-center mb-4">
-                <svg className="w-8 h-8 text-status-success-text" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="w-16 h-16 bg-green-50 border border-green-200 rounded-full flex items-center justify-center mb-4">
+                <svg className="w-8 h-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
@@ -215,7 +215,7 @@ function LocalDashboardPage() {
               {priorityExceptions.map((ex) => {
                 const decision = decisions[ex.id];
                 return (
-                  <li key={ex.id} className="group hover:bg-panel-hover transition-colors duration-[180ms] ease-[cubic-bezier(.22,1,.36,1)]">
+                  <li key={ex.id} className="group hover:bg-surface-hover transition-colors duration-[180ms] ease-[cubic-bezier(.22,1,.36,1)]">
                     <Link href={`/exceptions/${ex.id}`} className="block p-5 sm:px-6">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-6">
@@ -241,7 +241,7 @@ function LocalDashboardPage() {
                               ? formatCurrency(ex.amount, ex.currency ?? "INR")
                               : "-"}
                           </div>
-                          <div className="text-brand-primary opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-[240ms] ease-[cubic-bezier(.22,1,.36,1)]">
+                          <div className="text-neutral-900 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-[240ms] ease-[cubic-bezier(.22,1,.36,1)]">
                             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                             </svg>

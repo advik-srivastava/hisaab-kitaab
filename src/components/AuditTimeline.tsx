@@ -17,12 +17,12 @@ export function AuditTimeline({ events }: { events: AuditEvent[] }) {
               <div className="relative flex space-x-4">
                 <div>
                   {event.actorType === "SYSTEM" ? (
-                    <span className="h-8 w-8 rounded-full bg-panel flex items-center justify-center ring-4 ring-canvas border border-panel-border shadow-[0_0_10px_rgba(255,255,255,0.05)]">
+                    <span className="h-8 w-8 rounded-full bg-surface-elevated flex items-center justify-center ring-4 ring-canvas border border-border-default shadow-sm">
                       <div className="h-2.5 w-2.5 rounded-full bg-text-muted" />
                     </span>
                   ) : (
-                    <span className="h-8 w-8 rounded-full bg-brand-primary/20 flex items-center justify-center ring-4 ring-canvas border border-brand-primary/40 shadow-[0_0_15px_var(--color-brand-glow)]">
-                      <svg className="w-4 h-4 text-brand-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <span className="h-8 w-8 rounded-full bg-neutral-900/20 flex items-center justify-center ring-4 ring-canvas border border-neutral-900/40 shadow-sm">
+                      <svg className="w-4 h-4 text-neutral-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                       </svg>
                     </span>
@@ -40,7 +40,7 @@ export function AuditTimeline({ events }: { events: AuditEvent[] }) {
                       )}
                     </div>
                     {event.note && (
-                      <div className="mt-3 text-sm italic text-text-primary bg-black/30 border border-panel-border/50 p-4 rounded-xl shadow-inner relative">
+                      <div className="mt-3 text-sm italic text-text-primary bg-black/30 border border-border-default/50 p-4 rounded-xl  relative">
                         <div className="absolute top-2 left-2 text-text-muted opacity-30 text-2xl leading-none">&ldquo;</div>
                         <span className="relative z-10 pl-3 block">{event.note}</span>
                       </div>

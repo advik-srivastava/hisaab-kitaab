@@ -66,7 +66,7 @@ function LocalExceptionsPage() {
   }, [filter, page]);
 
   if (loadError) {
-    return <div className="p-12 text-center text-sm text-status-danger-text">{loadError}</div>;
+    return <div className="p-12 text-center text-sm text-red-500">{loadError}</div>;
   }
 
   if (!policyLoaded || metadata === undefined || (loading && !result)) {
@@ -103,8 +103,8 @@ function LocalExceptionsPage() {
     return (
       <div className="max-w-3xl mx-auto mt-12 relative z-10">
         <div className="card p-12 text-center flex flex-col items-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-status-success-bg border border-status-success-border mb-6 shadow-[0_0_20px_rgba(16,185,129,0.2)]">
-            <svg className="h-8 w-8 text-status-success-text" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-50 border border-green-200 mb-6 shadow-sm">
+            <svg className="h-8 w-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
             </svg>
           </div>
@@ -132,7 +132,7 @@ function LocalExceptionsPage() {
 
   return (
     <div className="space-y-8 relative z-10 pb-12">
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between border-b border-panel-border pb-5 gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between border-b border-border-default pb-5 gap-4">
         <div>
           <h1 className="text-3xl font-extrabold text-text-primary tracking-tight">
             Exception Queue
@@ -141,12 +141,12 @@ function LocalExceptionsPage() {
             Review flagged transactions before approval.
           </p>
         </div>
-        <div className="flex bg-slate-100/50 p-1 rounded-xl border border-panel-border shadow-sm">
+        <div className="flex bg-slate-100/50 p-1 rounded-xl border border-border-default shadow-sm">
           <button
             onClick={() => selectFilter("All")}
             className={`px-5 py-2.5 text-sm font-bold rounded-lg transition-all duration-[180ms] ease-[cubic-bezier(.22,1,.36,1)] ${
               filter === "All"
-                ? "bg-white text-brand-primary shadow-sm ring-1 ring-black/5"
+                ? "bg-white text-neutral-900 shadow-sm ring-1 ring-black/5"
                 : "text-text-muted hover:text-text-primary hover:bg-black/5"
             }`}
           >
@@ -156,7 +156,7 @@ function LocalExceptionsPage() {
             onClick={() => selectFilter("HIGH_RISK")}
             className={`px-5 py-2.5 text-sm font-bold rounded-lg transition-all duration-[180ms] ease-[cubic-bezier(.22,1,.36,1)] ${
               filter === "HIGH_RISK"
-                ? "bg-status-danger-bg text-status-danger-text shadow-sm ring-1 ring-status-danger-border/50"
+                ? "bg-red-50 text-red-500 shadow-sm ring-1 ring-status-danger-border/50"
                 : "text-text-muted hover:text-text-primary hover:bg-black/5"
             }`}
           >
@@ -166,7 +166,7 @@ function LocalExceptionsPage() {
             onClick={() => selectFilter("REVIEW")}
             className={`px-5 py-2.5 text-sm font-bold rounded-lg transition-all duration-[180ms] ease-[cubic-bezier(.22,1,.36,1)] ${
               filter === "REVIEW"
-                ? "bg-status-warning-bg text-status-warning-text shadow-sm ring-1 ring-status-warning-border/50"
+                ? "bg-amber-50 text-amber-500 shadow-sm ring-1 ring-status-warning-border/50"
                 : "text-text-muted hover:text-text-primary hover:bg-black/5"
             }`}
           >
@@ -191,7 +191,7 @@ function LocalExceptionsPage() {
             <tbody className="divide-y divide-panel-border/30">
               {!loading && result.items.map(({ transaction: t, decision }) => {
                 return (
-                  <tr key={t.id} className="hover:bg-panel-hover transition-colors group">
+                  <tr key={t.id} className="hover:bg-surface-hover transition-colors group">
                     <td className="table-cell">
                       <StatusBadge status={decision.status} />
                     </td>
@@ -212,7 +212,7 @@ function LocalExceptionsPage() {
                     <td className="table-cell text-right">
                       <Link
                         href={`/exceptions/${t.id}`}
-                        className="inline-flex items-center gap-2 text-brand-primary font-bold hover:text-white hover:border-brand-primary bg-brand-primary/5 hover:bg-brand-primary px-4 py-2 rounded-lg transition-all duration-[180ms] border border-brand-primary/20 hover:shadow-md"
+                        className="inline-flex items-center gap-2 text-neutral-900 font-bold hover:text-white hover:border-neutral-900 bg-neutral-900/5 hover:bg-neutral-900 px-4 py-2 rounded-lg transition-all duration-[180ms] border border-neutral-900/20 hover:shadow-md"
                       >
                         Review
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -241,7 +241,7 @@ function LocalExceptionsPage() {
             </tbody>
           </table>
         </div>
-        <div className="flex items-center justify-between border-t border-panel-border px-6 py-4 bg-slate-50/50">
+        <div className="flex items-center justify-between border-t border-border-default px-6 py-4 bg-slate-50/50">
           <button
             type="button"
             onClick={() => selectPage(Math.max(1, result.page - 1))}

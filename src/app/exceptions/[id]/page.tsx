@@ -222,7 +222,7 @@ function LocalExceptionDetailPage() {
         <h2 className="text-xl font-bold text-text-primary mb-3">
           {message?.type === "error" ? message.text : "Exception not found."}
         </h2>
-        <Link href="/exceptions" className="text-brand-primary hover:underline font-semibold">
+        <Link href="/exceptions" className="text-neutral-900 hover:underline font-semibold">
           Return to the exception queue
         </Link>
       </div>
@@ -242,13 +242,13 @@ function LocalExceptionDetailPage() {
           Exceptions
         </Link>
         <span className="text-panel-border-hover">/</span>
-        <span className="text-text-primary bg-panel px-2.5 py-1 rounded-md border border-panel-border">{transaction.id}</span>
+        <span className="text-text-primary bg-surface-elevated px-2.5 py-1 rounded-md border border-border-default">{transaction.id}</span>
       </div>
 
       <div className={`card overflow-hidden border-l-8 ${
-        decision.status === "HIGH_RISK" ? "border-l-red-500 shadow-[0_0_30px_rgba(239,68,68,0.15)]" :
-        decision.status === "REVIEW" ? "border-l-amber-500 shadow-[0_0_30px_rgba(245,158,11,0.15)]" :
-        "border-l-emerald-500 shadow-[0_0_30px_rgba(16,185,129,0.15)]"
+        decision.status === "HIGH_RISK" ? "border-l-red-500 shadow-sm" :
+        decision.status === "REVIEW" ? "border-l-amber-500 shadow-sm" :
+        "border-l-emerald-500 shadow-sm"
       }`}>
         <div className="p-6 sm:p-10 relative">
           <div className="absolute top-0 right-0 p-6 opacity-10">
@@ -258,7 +258,7 @@ function LocalExceptionDetailPage() {
           </div>
           
           <div className="relative z-10">
-            {policySnapshot && <p className="mb-4 text-xs font-bold text-brand-primary">Policy: {policySnapshot.policyName} v{policySnapshot.version}</p>}
+            {policySnapshot && <p className="mb-4 text-xs font-bold text-neutral-900">Policy: {policySnapshot.policyName} v{policySnapshot.version}</p>}
             <div className="flex items-center gap-4 mb-6">
               <StatusBadge status={decision.status} />
               <h1 className="text-3xl font-extrabold text-text-primary tracking-tight">
@@ -266,7 +266,7 @@ function LocalExceptionDetailPage() {
               </h1>
             </div>
             
-            <div className="flex flex-wrap gap-x-12 gap-y-6 text-sm bg-slate-50 border border-panel-border rounded-xl p-6 w-fit shadow-sm">
+            <div className="flex flex-wrap gap-x-12 gap-y-6 text-sm bg-slate-50 border border-border-default rounded-xl p-6 w-fit shadow-sm">
               <div className="flex flex-col gap-2">
                 <span className="text-xs font-bold text-text-muted uppercase tracking-widest">Invoice</span>
                 <span className="text-lg font-bold text-text-primary">{transaction.invoiceNumber || "-"}</span>
@@ -277,7 +277,7 @@ function LocalExceptionDetailPage() {
               </div>
               <div className="flex flex-col gap-2">
                 <span className="text-xs font-bold text-text-muted uppercase tracking-widest">Amount</span>
-                <span className="text-lg font-heading font-semibold text-brand-primary">
+                <span className="text-lg font-heading font-semibold text-neutral-900">
                   {typeof transaction.amount === "number" && Number.isFinite(transaction.amount)
                     ? formatCurrency(transaction.amount, transaction.currency ?? "INR")
                     : "-"}
@@ -295,7 +295,7 @@ function LocalExceptionDetailPage() {
           {failedRules.length > 0 && (
             <div className="card p-6 lg:p-8">
               <h3 className="text-xl font-bold text-text-primary mb-6 flex items-center gap-3">
-                <div className="bg-red-500/20 p-2 rounded-lg ring-1 ring-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.3)]">
+                <div className="bg-red-500/20 p-2 rounded-lg ring-1 ring-red-500/50 shadow-sm">
                   <svg className="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                   </svg>
@@ -304,25 +304,25 @@ function LocalExceptionDetailPage() {
               </h3>
               <ul className="space-y-5">
                 {failedRules.map((rule, idx) => (
-                  <li key={idx} className="bg-slate-50/50 rounded-xl p-6 border border-panel-border shadow-sm relative overflow-hidden">
+                  <li key={idx} className="bg-slate-50/50 rounded-xl p-6 border border-border-default shadow-sm relative overflow-hidden">
                     <div className={`absolute left-0 top-0 w-1 h-full ${rule.severity === "HIGH" ? "bg-red-500" : "bg-amber-500"}`}></div>
                     <div className="flex justify-between items-start mb-4">
                       <span className="text-lg font-bold text-text-primary">{rule.ruleName}</span>
                       <span className={`text-xs px-3 py-1 rounded-md font-extrabold tracking-widest uppercase shadow-sm ${
-                        rule.severity === "HIGH" ? "bg-status-danger-bg text-status-danger-text border border-status-danger-border" : "bg-status-warning-bg text-status-warning-text border border-status-warning-border"
+                        rule.severity === "HIGH" ? "bg-red-50 text-red-500 border border-red-200" : "bg-amber-50 text-amber-500 border border-amber-200"
                       }`}>
                         {rule.severity}
                       </span>
                     </div>
                     <p className="text-sm text-text-secondary leading-relaxed mb-6">{rule.explanation}</p>
                     <div className="grid grid-cols-2 gap-5">
-                      <div className="bg-white border border-panel-border rounded-lg p-4 shadow-sm">
+                      <div className="bg-white border border-border-default rounded-lg p-4 shadow-sm">
                         <div className="text-xs font-bold text-text-muted uppercase tracking-widest mb-1.5">Expected Limit</div>
                         <div className="font-heading font-semibold text-text-primary text-lg">{formatRuleValue(rule, rule.expectedValue, transaction.currency ?? "INR")}</div>
                       </div>
-                      <div className="bg-status-danger-bg border border-status-danger-border rounded-lg p-4 shadow-sm">
-                        <div className="text-xs font-bold text-status-danger-text uppercase tracking-widest mb-1.5">Actual Value</div>
-                        <div className="font-heading font-semibold text-status-danger-text text-lg">{formatRuleValue(rule, rule.actualValue, transaction.currency ?? "INR")}</div>
+                      <div className="bg-red-50 border border-red-200 rounded-lg p-4 shadow-sm">
+                        <div className="text-xs font-bold text-red-500 uppercase tracking-widest mb-1.5">Actual Value</div>
+                        <div className="font-heading font-semibold text-red-500 text-lg">{formatRuleValue(rule, rule.actualValue, transaction.currency ?? "INR")}</div>
                       </div>
                     </div>
                   </li>
@@ -334,7 +334,7 @@ function LocalExceptionDetailPage() {
           {/* Duplicate Evidence */}
           {bestMatch && matchedTransaction && (
             <div className="card overflow-hidden">
-              <div className="bg-slate-100/50 border-b border-panel-border px-6 py-5 flex items-center justify-between">
+              <div className="bg-slate-100/50 border-b border-border-default px-6 py-5 flex items-center justify-between">
                 <h3 className="text-xl font-bold text-text-primary flex items-center gap-3">
                   <div className="bg-amber-500/10 p-2 rounded-lg ring-1 ring-amber-500/30 shadow-sm">
                     <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -348,8 +348,8 @@ function LocalExceptionDetailPage() {
               <div className="flex flex-col sm:flex-row divide-y sm:divide-y-0 sm:divide-x divide-panel-border">
                 {/* Current Record */}
                 <div className="w-full sm:w-1/2 p-6 sm:p-8 space-y-6 bg-slate-50/50 relative">
-                  <div className="absolute top-0 left-0 w-full h-1 bg-brand-primary shadow-[0_0_10px_var(--color-brand-glow)]"></div>
-                  <h4 className="text-xs font-extrabold text-brand-primary uppercase tracking-widest mb-4">Current Record</h4>
+                  <div className="absolute top-0 left-0 w-full h-1 bg-neutral-900 shadow-sm"></div>
+                  <h4 className="text-xs font-extrabold text-neutral-900 uppercase tracking-widest mb-4">Current Record</h4>
                   
                   <div className="space-y-1">
                     <div className="text-text-muted text-xs font-bold uppercase tracking-widest">Invoice</div>
@@ -373,7 +373,7 @@ function LocalExceptionDetailPage() {
                   </div>
                   <div className="space-y-1 pt-2">
                     <div className="text-text-muted text-[10px] font-bold uppercase tracking-widest">Transaction ID</div>
-                    <div className="text-xs font-mono text-text-muted bg-white border border-panel-border px-2 py-1 rounded inline-block shadow-sm">{transaction.id}</div>
+                    <div className="text-xs font-mono text-text-muted bg-white border border-border-default px-2 py-1 rounded inline-block shadow-sm">{transaction.id}</div>
                   </div>
                 </div>
 
@@ -404,20 +404,20 @@ function LocalExceptionDetailPage() {
                   </div>
                   <div className="space-y-1 pt-2">
                     <div className="text-text-muted text-[10px] font-bold uppercase tracking-widest">Transaction ID</div>
-                    <div className="text-xs font-mono text-text-muted bg-white border border-panel-border px-2 py-1 rounded inline-block shadow-sm">{matchedTransaction.id}</div>
+                    <div className="text-xs font-mono text-text-muted bg-white border border-border-default px-2 py-1 rounded inline-block shadow-sm">{matchedTransaction.id}</div>
                   </div>
                 </div>
               </div>
               
               {/* Evidence details */}
               {bestMatch.evidence.length > 0 && (
-                <div className="bg-slate-50 border-t border-panel-border p-6 sm:p-8">
+                <div className="bg-slate-50 border-t border-border-default p-6 sm:p-8">
                   <h4 className="text-sm font-bold text-text-primary uppercase tracking-widest mb-4">Algorithm Evidence</h4>
                   <ul className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {bestMatch.evidence.map((ev, idx) => (
-                      <li key={idx} className="flex items-center gap-3 text-sm font-medium text-text-secondary bg-white px-4 py-3 rounded-xl border border-panel-border shadow-sm">
-                        <div className="bg-status-success-bg rounded-full p-1 border border-status-success-border flex-shrink-0">
-                          <svg className="w-4 h-4 text-status-success-text" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                      <li key={idx} className="flex items-center gap-3 text-sm font-medium text-text-secondary bg-white px-4 py-3 rounded-xl border border-border-default shadow-sm">
+                        <div className="bg-green-50 rounded-full p-1 border border-green-200 flex-shrink-0">
+                          <svg className="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                           </svg>
                         </div>
@@ -425,9 +425,9 @@ function LocalExceptionDetailPage() {
                       </li>
                     ))}
                     {bestMatch.vendorSimilarity !== null && bestMatch.matchType !== "EXACT" && (
-                       <li className="flex items-center gap-3 text-sm font-medium text-text-secondary bg-white px-4 py-3 rounded-xl border border-panel-border shadow-sm">
-                         <div className="bg-status-success-bg rounded-full p-1 border border-status-success-border flex-shrink-0">
-                           <svg className="w-4 h-4 text-status-success-text" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                       <li className="flex items-center gap-3 text-sm font-medium text-text-secondary bg-white px-4 py-3 rounded-xl border border-border-default shadow-sm">
+                         <div className="bg-green-50 rounded-full p-1 border border-green-200 flex-shrink-0">
+                           <svg className="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                             </svg>
                          </div>
@@ -441,17 +441,17 @@ function LocalExceptionDetailPage() {
           )}
 
           {decision.recommendedAction && (
-            <div className="bg-brand-primary/10 border border-brand-primary/30 rounded-2xl p-6 flex gap-4 shadow-[0_0_30px_rgba(59,130,246,0.15)] relative overflow-hidden">
+            <div className="bg-neutral-900/10 border border-neutral-900/30 rounded-2xl p-6 flex gap-4 shadow-sm relative overflow-hidden">
               <div className="absolute top-0 right-0 p-4 opacity-5">
                  <svg className="w-32 h-32" fill="currentColor" viewBox="0 0 24 24"><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
               </div>
-              <div className="bg-brand-primary/20 p-2.5 rounded-xl border border-brand-primary/40 flex-shrink-0 self-start z-10">
-                <svg className="w-6 h-6 text-brand-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <div className="bg-neutral-900/20 p-2.5 rounded-xl border border-neutral-900/40 flex-shrink-0 self-start z-10">
+                <svg className="w-6 h-6 text-neutral-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
               <div className="z-10">
-                <h4 className="text-sm font-extrabold text-brand-primary tracking-widest uppercase">System Recommendation</h4>
+                <h4 className="text-sm font-extrabold text-neutral-900 tracking-widest uppercase">System Recommendation</h4>
                 <p className="text-lg font-medium text-text-primary mt-2">
                   {decision.recommendedAction}
                 </p>
@@ -459,11 +459,11 @@ function LocalExceptionDetailPage() {
             </div>
           )}
 
-          <section className="card p-6 lg:p-8 border-brand-primary/30" aria-labelledby="azure-ai-explanation-title">
+          <section className="card p-6 lg:p-8 border-neutral-900/30" aria-labelledby="azure-ai-explanation-title">
             <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-5">
               <div className="flex items-start gap-4">
-                <div className="bg-brand-primary/15 p-3 rounded-xl border border-brand-primary/30 flex-shrink-0 shadow-[0_0_20px_rgba(59,130,246,0.15)]">
-                  <svg className="w-6 h-6 text-brand-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                <div className="bg-neutral-900/15 p-3 rounded-xl border border-neutral-900/30 flex-shrink-0 shadow-sm">
+                  <svg className="w-6 h-6 text-neutral-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7-4.7-1.8 4.7-1.8L12 3zm6 11l.9 2.1L21 17l-2.1.9L18 20l-.9-2.1L15 17l2.1-.9L18 14z" />
                   </svg>
                 </div>
@@ -484,21 +484,21 @@ function LocalExceptionDetailPage() {
             </div>
 
             <div className="mt-6" aria-live="polite">
-              {isAiLoading && <div className="rounded-xl border border-brand-primary/20 bg-brand-primary/5 p-5 text-sm text-text-secondary">Azure AI is reviewing the existing evidence...</div>}
-              {!isAiLoading && aiError && <div role="alert" className="rounded-xl border border-status-danger-border bg-status-danger-bg p-5 text-sm font-semibold text-status-danger-text">{aiError}</div>}
+              {isAiLoading && <div className="rounded-xl border border-neutral-900/20 bg-neutral-900/5 p-5 text-sm text-text-secondary">Azure AI is reviewing the existing evidence...</div>}
+              {!isAiLoading && aiError && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-5 text-sm font-semibold text-red-500">{aiError}</div>}
               {!isAiLoading && !aiError && currentAiExplanation && (
                 <div className="space-y-5">
-                  <div className="rounded-xl border border-panel-border bg-black/30 p-5 sm:p-6">
+                  <div className="rounded-xl border border-border-default bg-black/30 p-5 sm:p-6">
                     <p className="text-base leading-7 text-text-primary whitespace-pre-wrap">{currentAiExplanation.explanation}</p>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {["Azure Functions", "Azure OpenAI", "Human decision required"].map((badge) => <span key={badge} className="rounded-full border border-brand-primary/20 bg-brand-primary/10 px-3 py-1 text-xs font-bold text-brand-primary">{badge}</span>)}
+                    {["Azure Functions", "Azure OpenAI", "Human decision required"].map((badge) => <span key={badge} className="rounded-full border border-neutral-900/20 bg-neutral-900/10 px-3 py-1 text-xs font-bold text-neutral-900">{badge}</span>)}
                   </div>
                 </div>
               )}
             </div>
 
-            <div className="mt-6 flex gap-3 rounded-xl border border-panel-border bg-black/20 p-4">
+            <div className="mt-6 flex gap-3 rounded-xl border border-border-default bg-black/20 p-4">
               <svg className="w-5 h-5 text-text-muted flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 4.5h.008v.008H12V16.5z" /></svg>
               <p className="text-xs leading-5 text-text-muted">AI explains the system evidence only. It does not approve, reject, or change the transaction status.</p>
             </div>
@@ -524,7 +524,7 @@ function LocalExceptionDetailPage() {
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 placeholder="Provide context for the audit log..."
-                className="w-full rounded-xl bg-slate-50 border border-panel-border px-5 py-4 text-sm font-medium text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary transition-all shadow-sm"
+                className="w-full rounded-xl bg-slate-50 border border-border-default px-5 py-4 text-sm font-medium text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-neutral-900 transition-all shadow-sm"
                 disabled={isProcessing}
               />
                 </div>
@@ -548,7 +548,7 @@ function LocalExceptionDetailPage() {
                 <button
                 onClick={() => handleAction("MARK_NOT_DUPLICATE")}
                 disabled={isProcessing}
-                className="sm:w-auto bg-white hover:bg-slate-50 focus:ring-2 focus:ring-text-muted focus:ring-offset-2 focus:ring-offset-panel disabled:opacity-50 text-text-primary border border-panel-border font-extrabold py-4 px-8 rounded-xl shadow-sm transition-all uppercase tracking-widest active:scale-95"
+                className="sm:w-auto bg-white hover:bg-slate-50 focus:ring-2 focus:ring-text-muted focus:ring-offset-2 focus:ring-offset-panel disabled:opacity-50 text-text-primary border border-border-default font-extrabold py-4 px-8 rounded-xl shadow-sm transition-all uppercase tracking-widest active:scale-95"
               >
                 Not Duplicate
                 </button>
@@ -562,8 +562,8 @@ function LocalExceptionDetailPage() {
             )}
             
             {message && (
-              <div className={`mt-6 p-4 rounded-xl text-sm font-bold flex items-center gap-3 ${message.type === "success" ? "bg-status-success-bg text-status-success-text border border-status-success-border shadow-[0_0_20px_rgba(16,185,129,0.1)]" : "bg-status-danger-bg text-status-danger-text border border-status-danger-border shadow-[0_0_20px_rgba(239,68,68,0.1)]"}`}>
-                <div className={`p-1 rounded-full ${message.type === "success" ? "bg-status-success-border text-status-success-text" : "bg-status-danger-border text-status-danger-text"}`}>
+              <div className={`mt-6 p-4 rounded-xl text-sm font-bold flex items-center gap-3 ${message.type === "success" ? "bg-green-50 text-green-500 border border-green-200 shadow-sm" : "bg-red-50 text-red-500 border border-red-200 shadow-sm"}`}>
+                <div className={`p-1 rounded-full ${message.type === "success" ? "bg-status-success-border text-green-500" : "bg-status-danger-border text-red-500"}`}>
                   <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                     {message.type === "success" ? (
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />

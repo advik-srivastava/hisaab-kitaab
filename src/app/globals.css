@@ -1,31 +1,67 @@
 @import "tailwindcss";
 
 @theme {
-  --color-canvas: #f8fafc;
-  --color-panel: #ffffff;
-  --color-panel-hover: #f1f5f9;
-  --color-panel-border: #e2e8f0;
-  --color-panel-border-hover: #cbd5e1;
+  /* 1. PRIMITIVE TOKENS */
+  --color-neutral-0: #ffffff;
+  --color-neutral-50: #fbfbf9; /* warm pearl / ivory */
+  --color-neutral-100: #f5f4f0;
+  --color-neutral-200: #eae8e1;
+  --color-neutral-300: #d4d1c9;
+  --color-neutral-400: #a39f96;
+  --color-neutral-500: #737069;
+  --color-neutral-600: #52504a;
+  --color-neutral-700: #3f3d39;
+  --color-neutral-800: #292825;
+  --color-neutral-900: #151515; /* Near black */
+
+  --color-purple-500: #8b5cf6;
+  --color-purple-50: #f5f3ff;
   
-  --color-brand-primary: #0a2430; /* Deep premium teal from logo */
-  --color-brand-secondary: #45635a; /* Softer green accent */
-  --color-brand-glow: rgba(10, 36, 48, 0.15);
+  --color-amber-500: #f59e0b;
+  --color-amber-50: #fffbeb;
+  
+  --color-red-500: #ef4444;
+  --color-red-50: #fef2f2;
+  
+  --color-green-500: #10b981;
+  --color-green-50: #ecfdf5;
 
-  --color-text-primary: #0f172a;
-  --color-text-secondary: #475569;
-  --color-text-muted: #64748b;
+  --color-blue-500: #3b82f6;
+  --color-blue-50: #eff6ff;
 
-  --color-status-success-bg: #ecfdf5;
-  --color-status-success-text: #059669;
-  --color-status-success-border: #a7f3d0;
+  /* 2. SEMANTIC TOKENS */
+  --color-surface-primary: var(--color-neutral-50);
+  --color-surface-secondary: var(--color-neutral-100);
+  --color-surface-elevated: var(--color-neutral-0);
+  --color-surface-hover: var(--color-neutral-100);
 
-  --color-status-warning-bg: #fffbeb;
-  --color-status-warning-text: #d97706;
-  --color-status-warning-border: #fde68a;
+  --color-text-primary: var(--color-neutral-900);
+  --color-text-secondary: var(--color-neutral-600);
+  --color-text-muted: var(--color-neutral-400);
 
-  --color-status-danger-bg: #fef2f2;
-  --color-status-danger-text: #dc2626;
-  --color-status-danger-border: #fecaca;
+  --color-border-subtle: var(--color-neutral-200);
+  --color-border-default: var(--color-neutral-300);
+
+  --color-status-success: var(--color-green-500);
+  --color-status-success-bg: var(--color-green-50);
+  --color-status-warning: var(--color-amber-500);
+  --color-status-warning-bg: var(--color-amber-50);
+  --color-status-danger: var(--color-red-500);
+  --color-status-danger-bg: var(--color-red-50);
+  --color-status-info: var(--color-blue-500);
+  --color-status-info-bg: var(--color-blue-50);
+  --color-status-ai: var(--color-purple-500);
+  --color-status-ai-bg: var(--color-purple-50);
+
+  /* 3. COMPONENT TOKENS */
+  --color-card-background: var(--color-surface-elevated);
+  --color-card-border: var(--color-border-subtle);
+  --color-sidebar-background: var(--color-surface-elevated);
+  --color-sidebar-active: var(--color-neutral-100);
+  --color-button-primary: var(--color-neutral-900);
+  --color-button-primary-hover: var(--color-neutral-800);
+  --color-table-row-hover: var(--color-neutral-50);
+  --color-ai-explanation-panel: var(--color-purple-50);
 
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-heading: var(--font-sora), ui-sans-serif, system-ui, sans-serif;
@@ -33,16 +69,16 @@
 
 @layer base {
   body {
-    @apply bg-canvas text-text-primary antialiased selection:bg-brand-primary/10 selection:text-brand-primary;
+    @apply bg-surface-primary text-text-primary antialiased selection:bg-neutral-200 selection:text-text-primary;
   }
   
   h1, h2, h3, h4, h5, h6 {
-    @apply font-heading tracking-tight;
+    @apply font-heading tracking-tight text-text-primary;
   }
 
   /* Focus States */
   *:focus-visible {
-    @apply outline-none ring-2 ring-brand-primary ring-offset-2 ring-offset-canvas rounded-[inherit];
+    @apply outline-none ring-2 ring-neutral-900 ring-offset-2 ring-offset-surface-primary rounded-[inherit];
   }
 
   /* Reduced Motion */
@@ -58,19 +94,25 @@
 
 @layer components {
   .btn-primary {
-    @apply inline-flex items-center justify-center rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition-all duration-[180ms] ease-[cubic-bezier(.22,1,.36,1)] hover:bg-brand-primary/90 hover:shadow-lg active:scale-[0.98];
+    @apply inline-flex items-center justify-center rounded bg-button-primary px-5 py-2.5 text-sm font-semibold text-white transition-all duration-[200ms] ease-[cubic-bezier(.22,1,.36,1)] hover:bg-button-primary-hover active:scale-[0.98];
   }
   .btn-secondary {
-    @apply inline-flex items-center justify-center rounded-lg bg-panel px-5 py-2.5 text-sm font-semibold text-text-primary border border-panel-border transition-all duration-[180ms] ease-[cubic-bezier(.22,1,.36,1)] hover:bg-panel-hover hover:border-panel-border-hover active:scale-[0.98] shadow-sm;
+    @apply inline-flex items-center justify-center rounded bg-surface-elevated px-5 py-2.5 text-sm font-semibold text-text-primary border border-border-default transition-all duration-[200ms] ease-[cubic-bezier(.22,1,.36,1)] hover:bg-surface-hover hover:border-border-default active:scale-[0.98] shadow-sm;
   }
   .card {
-    @apply bg-panel border border-panel-border rounded-xl shadow-sm transition-all duration-[320ms] ease-[cubic-bezier(.22,1,.36,1)];
+    @apply bg-card-background border border-card-border rounded-xl shadow-sm transition-all duration-[300ms] ease-[cubic-bezier(.22,1,.36,1)];
+  }
+  .card-hoverable {
+    @apply hover:border-border-default hover:-translate-y-[1px] hover:shadow-md;
   }
   .table-header {
-    @apply px-6 py-4 text-left text-xs font-bold text-text-muted uppercase tracking-wider border-b border-panel-border bg-slate-50/50;
+    @apply px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-widest border-b border-border-subtle bg-surface-elevated;
   }
   .table-cell {
-    @apply px-6 py-4 whitespace-nowrap text-sm text-text-primary border-b border-panel-border/60;
+    @apply px-6 py-4 whitespace-nowrap text-[13px] text-text-primary border-b border-border-subtle transition-colors duration-[150ms];
+  }
+  .table-row {
+    @apply hover:bg-table-row-hover;
   }
 
   .custom-scrollbar::-webkit-scrollbar {
@@ -81,10 +123,11 @@
     background: transparent;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
+    background: var(--color-border-default);
     border-radius: 10px;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
+    background: var(--color-text-muted);
   }
 }
+
