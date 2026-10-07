@@ -58,6 +58,7 @@ export function LocalPolicyAdmin() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void refresh();
   }, [refresh]);
 

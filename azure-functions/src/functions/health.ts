@@ -6,8 +6,8 @@ import {
 } from "@azure/functions";
 
 export async function health(
-  request: HttpRequest,
-  context: InvocationContext
+  _request: HttpRequest,
+  _context: InvocationContext
 ): Promise<HttpResponseInit> {
   return {
     status: 200,

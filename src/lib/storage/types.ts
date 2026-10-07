@@ -1,6 +1,7 @@
 import type { AuditEvent } from "../../types/audit";
 import type { BatchSummary, Decision } from "../../types/decisions";
 import type { DuplicateMatch } from "../../types/duplicates";
+import type { DuplicateMatchType } from "../../types/duplicates";
 import type { RuleResult } from "../../types/rules";
 import type { Transaction } from "../../types/transaction";
 import type { PolicySnapshot } from "../../types/policies";
@@ -11,11 +12,27 @@ export const BATCH_MARKER_KEY = "hisaab-kitaab:current-batch";
 
 export type ReviewAction = "APPROVE" | "REJECT" | "MARK_NOT_DUPLICATE";
 export type ExceptionStatusFilter = "HIGH_RISK" | "REVIEW";
+export type DuplicateStatusFilter = DuplicateMatchType | "NONE";
+export type PurchaseOrderStateFilter = "PRESENT" | "MISSING";
+export type HumanReviewStatusFilter = "REVIEWED" | "UNREVIEWED";
+export type ExceptionQuickFilter = "DUPLICATE" | "AMOUNT_VIOLATION" | "MISSING_PO";
 export const DEFAULT_EXCEPTION_PAGE_SIZE = 50;
 
 export interface ExceptionsPageQuery {
   batchId: string;
   status?: ExceptionStatusFilter;
+  search?: string;
+  expenseCategory?: string;
+  currency?: string;
+  department?: string;
+  amountMin?: number;
+  amountMax?: number;
+  dateFrom?: string;
+  dateTo?: string;
+  duplicateType?: DuplicateStatusFilter;
+  purchaseOrderState?: PurchaseOrderStateFilter;
+  reviewStatus?: HumanReviewStatusFilter;
+  quickFilter?: ExceptionQuickFilter;
   page?: number;
   pageSize?: number;
 }

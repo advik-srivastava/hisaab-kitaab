@@ -43,8 +43,10 @@ export function ServerExceptionDetailView({ id }: { id: string }) {
 
   useEffect(() => {
     let active = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void load().catch((caught) => { if (active) setMessage(caught instanceof Error ? caught.message : "Exception could not be loaded."); }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   useEffect(() => {
@@ -114,7 +116,7 @@ export function ServerExceptionDetailView({ id }: { id: string }) {
   if (loading && !detail) return <div className="min-h-[50vh] flex items-center justify-center"><p className="text-text-secondary animate-pulse">Loading transaction workspace...</p></div>;
   if (!detail) return <div className="text-center p-20"><p className="text-red-500 font-bold mb-4">{message ?? "Exception not found."}</p><Link href="/exceptions" className="btn-secondary">Return to queue</Link></div>;
   
-  const { transaction, decision, duplicateMatches, matchedTransaction, failedRules, assignment, review, auditEvents } = detail;
+  const { transaction, decision, duplicateMatches, matchedTransaction, failedRules, assignment, auditEvents } = detail;
 
   return (
     <div className="space-y-6 pb-20 animate-in fade-in duration-500">
