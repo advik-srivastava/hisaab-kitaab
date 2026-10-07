@@ -5,6 +5,7 @@ import type { RuleResult } from "../../types/rules";
 import type { Transaction } from "../../types/transaction";
 import { financePolicySchema, type FinancePolicy } from "../../types/policies";
 import { activatePolicySet } from "../../core/policies";
+import { hasAdvancedExceptionFilters, matchesExceptionQuery } from "./exceptionQuery";
 import {
   BATCH_MARKER_KEY,
   STORAGE_KEY,
@@ -285,6 +286,97 @@ export class IndexedDbPersistence implements PersistenceAdapter {
           [query.batchId, 0, Number.MIN_SAFE_INTEGER],
           [query.batchId, 1, Number.MAX_SAFE_INTEGER],
         );
+    if (hasAdvancedExceptionFilters(query)) {
+      const filteredTransaction = database.transaction([
+        OBJECT_STORES.decisions,
+        OBJECT_STORES.transactions,
+        OBJECT_STORES.ruleResults,
+        OBJECT_STORES.duplicateMatches,
+        OBJECT_STORES.reviewState,
+      ], "readonly");
+      const filteredDecisions = filteredTransaction.objectStore(OBJECT_STORES.decisions);
+      const filteredIndex = query.status
+        ? filteredDecisions.index("statusOrder")
+        : filteredDecisions.index("exceptionOrder");
+      const transactions = filteredTransaction.objectStore(OBJECT_STORES.transactions);
+      const duplicates = filteredTransaction.objectStore(OBJECT_STORES.duplicateMatches);
+      const rules = filteredTransaction.objectStore(OBJECT_STORES.ruleResults);
+      const reviews = filteredTransaction.objectStore(OBJECT_STORES.reviewState);
+      const offset = (page - 1) * pageSize;
+      const items: ExceptionsPageResult["items"] = [];
+      let totalItems = 0;
+      const needsDuplicates = Boolean(query.duplicateType || query.quickFilter === "DUPLICATE");
+      const needsRules = query.quickFilter === "AMOUNT_VIOLATION" || query.quickFilter === "MISSING_PO";
+      const needsReviews = Boolean(query.reviewStatus);
+
+      await new Promise<void>((resolve, reject) => {
+        let settled = false;
+        const fail = () => {
+          if (settled) return;
+          settled = true;
+          reject(filteredTransaction.error ?? new Error("Exception query failed."));
+        };
+        filteredTransaction.onabort = fail;
+        filteredTransaction.onerror = fail;
+        const cursorRequest = filteredIndex.openCursor(range);
+        cursorRequest.onerror = fail;
+        cursorRequest.onsuccess = () => {
+          const cursor = cursorRequest.result;
+          if (!cursor) {
+            settled = true;
+            resolve();
+            return;
+          }
+          const decisionRecord = cursor.value as DecisionRecord;
+          let transactionRecord: Transaction | undefined;
+          let duplicateRecord: DuplicateRecord | undefined;
+          let ruleRecord: RuleRecord | undefined;
+          let reviewRecord: ReviewRecord | undefined;
+          let pending = 1 + Number(needsDuplicates) + Number(needsRules) + Number(needsReviews);
+          const complete = () => {
+            pending -= 1;
+            if (pending > 0) return;
+            if (transactionRecord && matchesExceptionQuery(transactionRecord, query, {
+              duplicateMatches: duplicateRecord?.matches,
+              failedRules: ruleRecord?.results,
+              reviewActions: reviewRecord?.actions,
+            })) {
+              if (totalItems >= offset && items.length < pageSize) {
+                items.push({ transaction: transactionRecord, decision: decisionRecord.decision });
+              }
+              totalItems += 1;
+            }
+            cursor.continue();
+          };
+          const transactionRequest = transactions.get(decisionRecord.transactionId) as IDBRequest<Transaction | undefined>;
+          transactionRequest.onsuccess = () => { transactionRecord = transactionRequest.result; complete(); };
+          transactionRequest.onerror = fail;
+          if (needsDuplicates) {
+            const request = duplicates.get(decisionRecord.transactionId) as IDBRequest<DuplicateRecord | undefined>;
+            request.onsuccess = () => { duplicateRecord = request.result; complete(); };
+            request.onerror = fail;
+          }
+          if (needsRules) {
+            const request = rules.get(decisionRecord.transactionId) as IDBRequest<RuleRecord | undefined>;
+            request.onsuccess = () => { ruleRecord = request.result; complete(); };
+            request.onerror = fail;
+          }
+          if (needsReviews) {
+            const request = reviews.get(decisionRecord.transactionId) as IDBRequest<ReviewRecord | undefined>;
+            request.onsuccess = () => { reviewRecord = request.result; complete(); };
+            request.onerror = fail;
+          }
+        };
+      });
+      return {
+        items,
+        page,
+        pageSize,
+        totalItems,
+        totalPages: totalItems === 0 ? 0 : Math.ceil(totalItems / pageSize),
+        queryMs: performance.now() - startedAt,
+      };
+    }
     const totalItemsPromise = requestResult(index.count(range));
     const recordsPromise = new Promise<DecisionRecord[]>((resolve, reject) => {
       const records: DecisionRecord[] = [];

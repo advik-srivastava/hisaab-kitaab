@@ -4,6 +4,7 @@ import type { DuplicateMatch } from "../../types/duplicates";
 import type { RuleResult } from "../../types/rules";
 import type { Transaction } from "../../types/transaction";
 import { getBrowserPersistence } from "./indexedDb";
+import { matchesExceptionQuery } from "./exceptionQuery";
 import { loadState, saveStateWithResult } from "./storage";
 import { DEFAULT_EXCEPTION_PAGE_SIZE } from "./types";
 import type {
@@ -178,7 +179,12 @@ export async function getExceptionsPage(
     })
     .filter(({ transaction, decision }) =>
       transaction.batchId === query.batchId
-      && (query.status ? decision.status === query.status : decision.status !== "AUTO_PASS"),
+      && (query.status ? decision.status === query.status : decision.status !== "AUTO_PASS")
+      && matchesExceptionQuery(transaction, query, {
+        duplicateMatches: batch?.duplicateMatches[transaction.id],
+        failedRules: batch?.ruleResults[transaction.id],
+        reviewActions: batch?.reviewActions[transaction.id],
+      }),
     )
     .sort((left, right) => {
       const leftRank = left.decision.status === "HIGH_RISK" ? 0 : 1;

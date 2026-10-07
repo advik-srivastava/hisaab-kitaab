@@ -4,6 +4,7 @@ import type { DuplicateMatch } from "../../src/types/duplicates";
 import type { RuleResult } from "../../src/types/rules";
 import type { Transaction } from "../../src/types/transaction";
 import { DEFAULT_EXCEPTION_PAGE_SIZE } from "../../src/lib/storage";
+import { matchesExceptionQuery } from "../../src/lib/storage/exceptionQuery";
 import type {
   BatchMetadata,
   ExceptionsPageQuery,
@@ -69,7 +70,12 @@ export class MemoryPersistence implements PersistenceAdapter {
       })
       .filter(({ transaction, decision }) =>
         transaction.batchId === query.batchId
-        && (query.status ? decision.status === query.status : decision.status !== "AUTO_PASS"),
+        && (query.status ? decision.status === query.status : decision.status !== "AUTO_PASS")
+        && matchesExceptionQuery(transaction, query, {
+          duplicateMatches: this.duplicates.get(transaction.id),
+          failedRules: this.rules.get(transaction.id),
+          reviewActions: this.reviews.get(transaction.id),
+        }),
       )
       .sort((left, right) => {
         const leftRank = left.decision.status === "HIGH_RISK" ? 0 : 1;
