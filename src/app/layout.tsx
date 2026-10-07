@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import { AppShell } from "@/components/AppShell";
+import { AuthProvider } from "@/components/AuthProvider";
 
 const inter = localFont({
   src: "../../public/fonts/inter-latin.woff2",
@@ -34,7 +35,7 @@ export default function RootLayout({
       className={`${inter.variable} ${sora.variable}`}
     >
       <body className="font-sans bg-canvas text-text-primary antialiased">
-        <AppShell>{children}</AppShell>
+        <AuthProvider><AppShell>{children}</AppShell></AuthProvider>
       </body>
     </html>
   );

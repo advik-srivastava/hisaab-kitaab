@@ -17,9 +17,46 @@ import {
   getRuleResultsAsync,
   getDuplicateMatchesAsync,
   getAuditEventsAsync,
+  getCurrentBatchMetadata,
 } from "@/lib/storage";
+import type { PolicySnapshot } from "@/types/policies";
+import { ServerExceptionDetailView } from "@/components/ServerExceptionDetail";
+import {
+  explainExceptionWithAzure,
+  type AzureExplainResponse,
+} from "@/lib/azure";
+
+const monetaryRuleIds = new Set([
+  "REQ_AMOUNT",
+  "AMOUNT_POSITIVE",
+  "LIMIT_MEALS",
+  "LIMIT_TAXI",
+  "LIMIT_HOTEL",
+  "PO_REQUIRED",
+]);
+
+function formatRuleValue(rule: RuleResult, value: unknown): string {
+  if (value === null || value === undefined || value === "") return "Not provided";
+  if (monetaryRuleIds.has(rule.ruleId) && typeof value === "number" && Number.isFinite(value)) {
+    return `₹${value.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
+  }
+  if (Array.isArray(value)) return value.join(", ");
+  if (typeof value === "object") return JSON.stringify(value);
+  return String(value);
+}
 
 export default function ExceptionDetailPage() {
+  return process.env.NEXT_PUBLIC_APP_MODE === "SERVER"
+    ? <ServerExceptionDetailRouter />
+    : <LocalExceptionDetailPage />;
+}
+
+function ServerExceptionDetailRouter() {
+  const params = useParams();
+  return <ServerExceptionDetailView id={params.id as string} />;
+}
+
+function LocalExceptionDetailPage() {
   const params = useParams();
   const id = params.id as string;
 
@@ -30,20 +67,26 @@ export default function ExceptionDetailPage() {
   const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([]);
   const [matchedTransaction, setMatchedTransaction] = useState<Transaction | null>(null);
   const [hasLoaded, setHasLoaded] = useState(false);
+  const [policySnapshot, setPolicySnapshot] = useState<PolicySnapshot | null>(null);
 
   const [note, setNote] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [message, setMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
+  const [aiExplanation, setAiExplanation] = useState<{ transactionId: string; response: AzureExplainResponse } | null>(null);
+  const [isAiLoading, setIsAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
 
   const loadData = async () => {
     try {
-      const [t, loadedDecision, loadedRules, matches, events] = await Promise.all([
+      const [t, loadedDecision, loadedRules, matches, events, metadata] = await Promise.all([
         getTransactionAsync(id),
         getDecisionAsync(id),
         getRuleResultsAsync(id),
         getDuplicateMatchesAsync(id),
         getAuditEventsAsync(id),
+        getCurrentBatchMetadata(),
       ]);
+      setPolicySnapshot(metadata?.policySnapshot ?? null);
       if (t) {
         setTransaction(t);
         setDecision(loadedDecision || null);
@@ -75,6 +118,7 @@ export default function ExceptionDetailPage() {
       setDuplicateMatches([]);
       setAuditEvents([]);
       setMatchedTransaction(null);
+      setPolicySnapshot(null);
       setMessage({ text: "Failed to load transaction data.", type: "error" });
     } finally {
       setHasLoaded(true);
@@ -89,6 +133,7 @@ export default function ExceptionDetailPage() {
 
   const handleAction = async (action: "APPROVE" | "REJECT" | "MARK_NOT_DUPLICATE") => {
     if (isProcessing) return;
+    if ((action === "REJECT" || action === "MARK_NOT_DUPLICATE") && !window.confirm(`Confirm ${action.replaceAll("_", " ")}?`)) return;
     setIsProcessing(true);
     setMessage(null);
 
@@ -117,6 +162,51 @@ export default function ExceptionDetailPage() {
     }
   };
 
+  const handleAzureExplanation = async () => {
+    if (!transaction || !decision || isAiLoading) return;
+    setIsAiLoading(true);
+    setAiError(null);
+    try {
+      const failedRuleEvidence = ruleResults
+        .filter((rule) => rule.status === "FAIL")
+        .map((rule) => `${rule.ruleName}: ${rule.explanation}`);
+      const strongestDuplicate = duplicateMatches[0];
+      const explanation = await explainExceptionWithAzure({
+        invoiceId: transaction.id,
+        vendor: transaction.vendorName ?? null,
+        amount: transaction.amount ?? null,
+        currency: transaction.currency ?? null,
+        status: decision.status,
+        failedRules: failedRuleEvidence,
+        duplicateEvidence: strongestDuplicate?.evidence ?? [],
+        matchedRecord: matchedTransaction ? {
+          id: matchedTransaction.id,
+          invoiceNumber: matchedTransaction.invoiceNumber ?? null,
+          vendorName: matchedTransaction.vendorName ?? null,
+          amount: matchedTransaction.amount ?? null,
+          invoiceDate: matchedTransaction.invoiceDate ?? null,
+        } : null,
+      });
+      setAiExplanation({ transactionId: transaction.id, response: explanation });
+    } catch {
+      setAiError("Azure AI explanation could not be generated. The existing system evidence remains available.");
+    } finally {
+      setIsAiLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const handler = (event: KeyboardEvent) => {
+      const target = event.target;
+      if (event.ctrlKey || event.metaKey || event.altKey || (target instanceof HTMLElement && (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)))) return;
+      if (event.key.toLowerCase() === "a") void handleAction("APPROVE");
+      if (event.key.toLowerCase() === "r") void handleAction("REJECT");
+      if (event.key.toLowerCase() === "n" && duplicateMatches.length > 0) void handleAction("MARK_NOT_DUPLICATE");
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  });
+
   if (!hasLoaded) {
     return (
       <div className="flex justify-center p-12">
@@ -142,6 +232,7 @@ export default function ExceptionDetailPage() {
   const bestMatch = duplicateMatches[0];
   const isException = decision.status !== "AUTO_PASS";
   const hasDuplicateMatch = duplicateMatches.length > 0;
+  const currentAiExplanation = aiExplanation?.transactionId === transaction.id ? aiExplanation.response : null;
 
   return (
     <div className="space-y-8 relative z-10 pb-20">
@@ -166,6 +257,7 @@ export default function ExceptionDetailPage() {
           </div>
           
           <div className="relative z-10">
+            {policySnapshot && <p className="mb-4 text-xs font-bold text-brand-primary">Policy: {policySnapshot.policyName} v{policySnapshot.version}</p>}
             <div className="flex items-center gap-4 mb-6">
               <StatusBadge status={decision.status} />
               <h1 className="text-3xl font-extrabold text-text-primary tracking-tight">
@@ -225,11 +317,11 @@ export default function ExceptionDetailPage() {
                     <div className="grid grid-cols-2 gap-5">
                       <div className="bg-white border border-panel-border rounded-lg p-4 shadow-sm">
                         <div className="text-xs font-bold text-text-muted uppercase tracking-widest mb-1.5">Expected Limit</div>
-                        <div className="font-heading font-semibold text-text-primary text-lg">{String(rule.expectedValue)}</div>
+                        <div className="font-heading font-semibold text-text-primary text-lg">{formatRuleValue(rule, rule.expectedValue)}</div>
                       </div>
                       <div className="bg-status-danger-bg border border-status-danger-border rounded-lg p-4 shadow-sm">
                         <div className="text-xs font-bold text-status-danger-text uppercase tracking-widest mb-1.5">Actual Value</div>
-                        <div className="font-heading font-semibold text-status-danger-text text-lg">{String(rule.actualValue)}</div>
+                        <div className="font-heading font-semibold text-status-danger-text text-lg">{formatRuleValue(rule, rule.actualValue)}</div>
                       </div>
                     </div>
                   </li>
@@ -366,6 +458,51 @@ export default function ExceptionDetailPage() {
             </div>
           )}
 
+          <section className="card p-6 lg:p-8 border-brand-primary/30" aria-labelledby="azure-ai-explanation-title">
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-5">
+              <div className="flex items-start gap-4">
+                <div className="bg-brand-primary/15 p-3 rounded-xl border border-brand-primary/30 flex-shrink-0 shadow-[0_0_20px_rgba(59,130,246,0.15)]">
+                  <svg className="w-6 h-6 text-brand-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7-4.7-1.8 4.7-1.8L12 3zm6 11l.9 2.1L21 17l-2.1.9L18 20l-.9-2.1L15 17l2.1-.9L18 14z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 id="azure-ai-explanation-title" className="text-xl font-bold text-text-primary">Azure AI Evidence Explanation</h3>
+                  <p className="mt-1 text-sm text-text-secondary">Powered by Microsoft Azure OpenAI</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="btn-primary sm:flex-shrink-0 disabled:opacity-60 disabled:cursor-wait"
+                onClick={() => void handleAzureExplanation()}
+                disabled={isAiLoading}
+              >
+                {isAiLoading && <svg className="animate-spin -ml-1 mr-2 h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.4 0 0 5.4 0 12h4z" /></svg>}
+                {isAiLoading ? "Analyzing..." : currentAiExplanation ? "Regenerate" : "Explain with Azure AI"}
+              </button>
+            </div>
+
+            <div className="mt-6" aria-live="polite">
+              {isAiLoading && <div className="rounded-xl border border-brand-primary/20 bg-brand-primary/5 p-5 text-sm text-text-secondary">Azure AI is reviewing the existing evidence...</div>}
+              {!isAiLoading && aiError && <div role="alert" className="rounded-xl border border-status-danger-border bg-status-danger-bg p-5 text-sm font-semibold text-status-danger-text">{aiError}</div>}
+              {!isAiLoading && !aiError && currentAiExplanation && (
+                <div className="space-y-5">
+                  <div className="rounded-xl border border-panel-border bg-black/30 p-5 sm:p-6">
+                    <p className="text-base leading-7 text-text-primary whitespace-pre-wrap">{currentAiExplanation.explanation}</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {["Azure Functions", "Azure OpenAI", "Human decision required"].map((badge) => <span key={badge} className="rounded-full border border-brand-primary/20 bg-brand-primary/10 px-3 py-1 text-xs font-bold text-brand-primary">{badge}</span>)}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-6 flex gap-3 rounded-xl border border-panel-border bg-black/20 p-4">
+              <svg className="w-5 h-5 text-text-muted flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 4.5h.008v.008H12V16.5z" /></svg>
+              <p className="text-xs leading-5 text-text-muted">AI explains the system evidence only. It does not approve, reject, or change the transaction status.</p>
+            </div>
+          </section>
+
           <div className="card p-6 lg:p-8">
             <h3 className="text-xl font-bold text-text-primary mb-6">
               Reviewer Decision
@@ -437,6 +574,19 @@ export default function ExceptionDetailPage() {
                 {message.text}
               </div>
             )}
+            <details className="mt-5 text-sm text-text-muted">
+              <summary className="cursor-pointer font-bold">Keyboard shortcuts</summary>
+              <p className="mt-2">A approve · R reject · N mark not duplicate. Shortcuts are disabled while typing.</p>
+            </details>
+          </div>
+
+          <div className="card p-6 lg:p-8">
+            <h3 className="text-xl font-bold text-text-primary mb-5">Source Traceability</h3>
+            <dl className="grid sm:grid-cols-3 gap-5">
+              <div><dt className="text-xs uppercase tracking-widest text-text-muted">Source File</dt><dd className="mt-2 font-bold break-all">{transaction.sourceFile}</dd></div>
+              <div><dt className="text-xs uppercase tracking-widest text-text-muted">Source Sheet</dt><dd className="mt-2 font-bold">{transaction.sourceSheet ?? "-"}</dd></div>
+              <div><dt className="text-xs uppercase tracking-widest text-text-muted">Source Row</dt><dd className="mt-2 font-bold">{transaction.sourceRow}</dd></div>
+            </dl>
           </div>
         </div>
 

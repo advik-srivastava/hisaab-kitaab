@@ -2,10 +2,12 @@ import type {
   BatchAnalysisResult,
   ProcessingProgress,
 } from "../../core/pipeline";
+import type { FinancePolicy } from "../../types/policies";
 
 export interface WorkerAnalysisOptions {
   referenceDate?: string;
   nowIso?: string;
+  policy?: FinancePolicy;
 }
 
 export interface ProcessBatchWorkerRequest {

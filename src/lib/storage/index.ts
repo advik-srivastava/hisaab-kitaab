@@ -41,6 +41,12 @@ export {
   getBrowserPersistence,
 } from "./indexedDb";
 export {
+  activateFinancePolicy,
+  getActiveFinancePolicy,
+  listFinancePolicies,
+  saveFinancePolicyDraft,
+} from "./policies";
+export {
   BATCH_MARKER_KEY,
   DEFAULT_EXCEPTION_PAGE_SIZE,
   STORAGE_KEY,

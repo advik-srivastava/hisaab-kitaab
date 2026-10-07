@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   isSupportedUploadFile,
@@ -9,6 +9,9 @@ import {
 import type { IngestionFileError } from "@/core/ingestion";
 import type { ProcessingStage } from "@/core/pipeline";
 import { processBatchInWorker } from "@/lib/worker";
+import { getActiveFinancePolicy } from "@/lib/storage";
+import { defaultFinancePolicy } from "@/config/defaultPolicy";
+import type { FinancePolicy } from "@/types/policies";
 
 const progressLabels: Partial<Record<ProcessingStage, string>> = {
   READING_FILES: "Reading files...",
@@ -22,14 +25,29 @@ const progressLabels: Partial<Record<ProcessingStage, string>> = {
 
 export default function UploadPage() {
   const router = useRouter();
+  const serverMode = process.env.NEXT_PUBLIC_APP_MODE === "SERVER";
   const processingRef = useRef(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<File[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [progressStage, setProgressStage] = useState<ProcessingStage>();
   const [error, setError] = useState<string | null>(null);
   const [fileErrors, setFileErrors] = useState<IngestionFileError[]>([]);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [activePolicy, setActivePolicy] = useState<FinancePolicy>(defaultFinancePolicy);
+
+  useEffect(() => {
+    if (serverMode) return;
+    let mounted = true;
+    void getActiveFinancePolicy().then((policy) => {
+      if (mounted) setActivePolicy(policy);
+    });
+    return () => { mounted = false; };
+  }, [serverMode]);
 
   const addFiles = useCallback((selectedFiles: File[]) => {
+    setNotice(null);
     const unsupported = selectedFiles.filter((file) => !isSupportedUploadFile(file.name));
     const oversized = selectedFiles.filter((file) => file.size > MAX_UPLOAD_FILE_SIZE_BYTES);
     const validFiles = selectedFiles.filter(
@@ -67,11 +85,13 @@ export default function UploadPage() {
 
   const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
+    setIsDragging(false);
     addFiles(Array.from(e.dataTransfer.files));
   }, [addFiles]);
 
   const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
   }, []);
 
   const removeFile = (index: number) => {
@@ -85,9 +105,30 @@ export default function UploadPage() {
     setProgressStage(undefined);
     setError(null);
     setFileErrors([]);
+    setNotice(null);
 
     try {
-      const result = await processBatchInWorker(files, {}, ({ stage }) => {
+      if (serverMode) {
+        const batchId = crypto.randomUUID();
+        const results = await Promise.all(files.map(async (file) => {
+          const form = new FormData();
+          form.set("batchId", batchId);
+          form.set("file", file);
+          const response = await fetch("/api/uploads", { method: "POST", body: form });
+          return response.ok;
+        }));
+        const uploaded = results.filter(Boolean).length;
+        if (uploaded === 0) throw new Error("No files passed secure upload validation.");
+        const queued = await fetch("/api/jobs", {
+          method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ batchId }),
+        });
+        const body = await queued.json() as { error?: { message?: string } };
+        if (!queued.ok) throw new Error(body.error?.message ?? "Server processing could not be queued.");
+        setNotice(`Batch ${batchId} was queued with ${uploaded} file(s)${uploaded < files.length ? `; ${files.length - uploaded} file(s) failed validation` : ""}.`);
+        setFiles([]);
+        return;
+      }
+      const result = await processBatchInWorker(files, { policy: activePolicy }, ({ stage }) => {
         setProgressStage(stage);
       });
       setFileErrors(result.fileErrors);
@@ -102,8 +143,8 @@ export default function UploadPage() {
       } else {
         setError("All files failed to process or no valid transactions were found.");
       }
-    } catch {
-      setError("An unexpected error occurred during processing.");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "An unexpected error occurred during processing.");
     } finally {
       processingRef.current = false;
       setIsProcessing(false);
@@ -120,16 +161,43 @@ export default function UploadPage() {
         <p className="text-lg text-text-secondary max-w-2xl mx-auto">
           Securely process your Finance batch (CSV or XLSX) to instantly identify policy exceptions and duplicate transactions.
         </p>
+        {!serverMode && <p className="mt-4 inline-flex rounded-full border border-brand-primary/20 bg-brand-primary/10 px-4 py-2 text-xs font-bold text-brand-primary">Active Policy: {activePolicy.policyName} • v{activePolicy.version}</p>}
       </div>
 
       <div className="card p-8 sm:p-14 text-center relative overflow-hidden bg-white shadow-xl shadow-brand-primary/5 border-panel-border/80">
         <div className="max-w-lg mx-auto relative z-10">
+          <input
+            ref={fileInputRef}
+            id="file-upload"
+            name="file-upload"
+            type="file"
+            multiple
+            accept=".csv,.xlsx"
+            className="sr-only"
+            onChange={handleFileChange}
+            disabled={isProcessing}
+          />
           <div
             className={`flex flex-col items-center justify-center rounded-2xl border-2 border-dashed px-8 py-16 transition-all duration-[240ms] ease-[cubic-bezier(.22,1,.36,1)] ${
               isProcessing 
                 ? "border-panel-border bg-slate-50/50 opacity-60 cursor-not-allowed" 
-                : "border-brand-primary/20 bg-brand-primary/[0.02] hover:border-brand-primary/50 hover:bg-brand-primary/[0.04] cursor-pointer"
+                : isDragging
+                  ? "border-brand-primary bg-brand-primary/10 shadow-[0_0_30px_rgba(59,130,246,0.15)] cursor-copy"
+                  : "border-brand-primary/20 bg-brand-primary/[0.02] hover:border-brand-primary/50 hover:bg-brand-primary/[0.04] cursor-pointer"
             }`}
+            role="button"
+            tabIndex={isProcessing ? -1 : 0}
+            aria-controls="file-upload"
+            aria-disabled={isProcessing}
+            onClick={() => { if (!isProcessing) fileInputRef.current?.click(); }}
+            onKeyDown={(event) => {
+              if (!isProcessing && (event.key === "Enter" || event.key === " ")) {
+                event.preventDefault();
+                fileInputRef.current?.click();
+              }
+            }}
+            onDragEnter={isProcessing ? undefined : (event) => { event.preventDefault(); setIsDragging(true); }}
+            onDragLeave={isProcessing ? undefined : () => setIsDragging(false)}
             onDrop={isProcessing ? undefined : handleDrop}
             onDragOver={isProcessing ? undefined : handleDragOver}
           >
@@ -150,24 +218,7 @@ export default function UploadPage() {
                 </svg>
               </div>
               <div className="flex text-base leading-6 text-text-primary font-medium justify-center items-center gap-1">
-                <label
-                  htmlFor="file-upload"
-                className={`relative rounded-md font-bold text-brand-primary transition-colors ${
-                  isProcessing ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:text-brand-primary/80 focus-within:outline-none"
-                }`}
-                >
-                  <span>Select a file</span>
-                  <input
-                    id="file-upload"
-                    name="file-upload"
-                    type="file"
-                    multiple
-                    accept=".csv,.xlsx"
-                    className="sr-only"
-                    onChange={handleFileChange}
-                    disabled={isProcessing}
-                  />
-                </label>
+                <span className={`relative rounded-md font-bold text-brand-primary transition-colors ${isProcessing ? "opacity-60" : "hover:text-brand-primary/80"}`}>Select a file</span>
                 <p>or drag and drop it here</p>
               </div>
               <p className="text-sm text-text-secondary mt-3">
@@ -264,6 +315,8 @@ export default function UploadPage() {
           </div>
         )}
 
+        {notice && <div role="status" className="mt-8 max-w-lg mx-auto bg-status-success-bg border border-status-success-border text-status-success-text px-5 py-4 rounded-xl text-sm text-left relative z-10"><p className="font-bold">Processing queued</p><p className="mt-1">{notice}</p><p className="mt-1 opacity-80">The server worker will publish results and notifications when configured processing completes.</p></div>}
+
         <div className="mt-12 flex flex-col items-center relative z-10">
           <button
             onClick={handleAnalyze}
@@ -288,14 +341,6 @@ export default function UploadPage() {
               "Analyze Batch"
             )}
           </button>
-          
-          <div className="mt-6 flex items-center justify-center gap-2 text-xs font-semibold text-text-secondary bg-panel border border-panel-border px-4 py-2 rounded-full">
-            <span className="flex h-2 w-2 relative">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-status-success-text opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-status-success-text"></span>
-            </span>
-            Worker ready for background processing
-          </div>
         </div>
       </div>
     </div>

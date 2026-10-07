@@ -3,6 +3,8 @@ import type { BatchSummary, Decision } from "../../types/decisions";
 import type { DuplicateMatch } from "../../types/duplicates";
 import type { RuleResult } from "../../types/rules";
 import type { Transaction } from "../../types/transaction";
+import { financePolicySchema, type FinancePolicy } from "../../types/policies";
+import { activatePolicySet } from "../../core/policies";
 import {
   BATCH_MARKER_KEY,
   STORAGE_KEY,
@@ -17,7 +19,7 @@ import {
 } from "./types";
 
 export const DATABASE_NAME = "hisaab-kitaab";
-export const DATABASE_VERSION = 2;
+export const DATABASE_VERSION = 3;
 export const OBJECT_STORES = {
   batches: "batches",
   transactions: "transactions",
@@ -26,7 +28,19 @@ export const OBJECT_STORES = {
   decisions: "decisions",
   reviewState: "reviewState",
   auditEvents: "auditEvents",
+  policies: "policies",
+  settings: "settings",
 } as const;
+
+const ANALYSIS_STORES = [
+  OBJECT_STORES.batches,
+  OBJECT_STORES.transactions,
+  OBJECT_STORES.ruleResults,
+  OBJECT_STORES.duplicateMatches,
+  OBJECT_STORES.decisions,
+  OBJECT_STORES.reviewState,
+  OBJECT_STORES.auditEvents,
+] as const;
 
 interface BatchRecord extends BatchMetadata { current: number }
 interface RuleRecord { transactionId: string; batchId: string; results: RuleResult[] }
@@ -52,6 +66,7 @@ interface AuditRecord {
   order: number;
   event: AuditEvent;
 }
+interface SettingRecord { key: string; value: string }
 
 function requestResult<T>(request: IDBRequest<T>): Promise<T> {
   return new Promise((resolve, reject) => {
@@ -101,6 +116,18 @@ function createSchema(database: IDBDatabase): void {
   const audits = database.createObjectStore(OBJECT_STORES.auditEvents, { keyPath: "id" });
   audits.createIndex("batchId", "batchId");
   audits.createIndex("transactionId", "transactionId");
+  addPolicySchema(database);
+}
+
+function addPolicySchema(database: IDBDatabase): void {
+  if (!database.objectStoreNames.contains(OBJECT_STORES.policies)) {
+    const policies = database.createObjectStore(OBJECT_STORES.policies, { keyPath: "id" });
+    policies.createIndex("status", "status");
+    policies.createIndex("createdAt", "createdAt");
+  }
+  if (!database.objectStoreNames.contains(OBJECT_STORES.settings)) {
+    database.createObjectStore(OBJECT_STORES.settings, { keyPath: "key" });
+  }
 }
 
 function openDatabase(factory: IDBFactory): Promise<IDBDatabase> {
@@ -130,6 +157,7 @@ function openDatabase(factory: IDBFactory): Promise<IDBDatabase> {
           cursor.continue();
         };
       }
+      if (oldVersion < 3) addPolicySchema(request.result);
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
@@ -207,8 +235,8 @@ export class IndexedDbPersistence implements PersistenceAdapter {
         .objectStore(OBJECT_STORES.batches).index("current").get(1) as IDBRequest<BatchRecord | undefined>,
     );
     if (!record) return undefined;
-    const { batchId, createdAt, batchSummary } = record;
-    return { batchId, createdAt, batchSummary };
+    const { batchId, createdAt, batchSummary, policySnapshot } = record;
+    return { batchId, createdAt, batchSummary, policySnapshot };
   }
 
   async getCurrentBatch(): Promise<PersistedBatch | undefined> {
@@ -346,7 +374,7 @@ export class IndexedDbPersistence implements PersistenceAdapter {
   }
 
   async saveAnalyzedBatch(batch: PersistedBatch): Promise<StorageWriteResult> {
-    const metadata: BatchRecord = { batchId: batch.batchId, createdAt: batch.createdAt, batchSummary: batch.batchSummary, current: 1 };
+    const metadata: BatchRecord = { batchId: batch.batchId, createdAt: batch.createdAt, batchSummary: batch.batchSummary, policySnapshot: batch.policySnapshot, current: 1 };
     const rules: RuleRecord[] = batch.transactions.flatMap(({ id }) => {
       const results = (batch.ruleResults[id] ?? []).filter(({ status }) => status === "FAIL");
       return results.length ? [{ transactionId: id, batchId: batch.batchId, results }] : [];
@@ -381,7 +409,7 @@ export class IndexedDbPersistence implements PersistenceAdapter {
     const startedAt = performance.now();
     try {
       const database = await this.database();
-      const stores = Object.values(OBJECT_STORES);
+      const stores = [...ANALYSIS_STORES];
       const transaction = database.transaction(stores, "readwrite");
       const done = transactionDone(transaction);
       for (const store of stores) transaction.objectStore(store).clear();
@@ -451,6 +479,54 @@ export class IndexedDbPersistence implements PersistenceAdapter {
     for (const store of stores) transaction.objectStore(store).clear();
     await done;
     updateBrowserMarker();
+  }
+
+  async listPolicies(): Promise<FinancePolicy[]> {
+    const database = await this.database();
+    const records = await requestResult(
+      database.transaction(OBJECT_STORES.policies, "readonly")
+        .objectStore(OBJECT_STORES.policies).getAll() as IDBRequest<FinancePolicy[]>,
+    );
+    return records.map((record) => financePolicySchema.parse(record)).sort((left, right) =>
+      right.createdAt.localeCompare(left.createdAt),
+    );
+  }
+
+  async getActivePolicy(): Promise<FinancePolicy | undefined> {
+    const database = await this.database();
+    const setting = await requestResult(
+      database.transaction(OBJECT_STORES.settings, "readonly")
+        .objectStore(OBJECT_STORES.settings).get("activePolicyId") as IDBRequest<SettingRecord | undefined>,
+    );
+    if (!setting) return undefined;
+    const policy = await this.getRecord<FinancePolicy>(OBJECT_STORES.policies, setting.value);
+    return policy ? financePolicySchema.parse(policy) : undefined;
+  }
+
+  async savePolicy(policy: FinancePolicy): Promise<void> {
+    const validated = financePolicySchema.parse(policy);
+    const database = await this.database();
+    const transaction = database.transaction(OBJECT_STORES.policies, "readwrite");
+    const done = transactionDone(transaction);
+    transaction.objectStore(OBJECT_STORES.policies).put(validated);
+    await done;
+  }
+
+  async activatePolicy(policyId: string, activatedAt: string): Promise<FinancePolicy> {
+    const policies = await this.listPolicies();
+    const updated = activatePolicySet(policies, policyId, activatedAt);
+    const active = updated.find(({ id }) => id === policyId)!;
+    const database = await this.database();
+    const transaction = database.transaction(
+      [OBJECT_STORES.policies, OBJECT_STORES.settings],
+      "readwrite",
+    );
+    const done = transactionDone(transaction);
+    const policyStore = transaction.objectStore(OBJECT_STORES.policies);
+    for (const policy of updated) policyStore.put(policy);
+    transaction.objectStore(OBJECT_STORES.settings).put({ key: "activePolicyId", value: policyId });
+    await done;
+    return active;
   }
 }
 

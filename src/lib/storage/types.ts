@@ -3,6 +3,7 @@ import type { BatchSummary, Decision } from "../../types/decisions";
 import type { DuplicateMatch } from "../../types/duplicates";
 import type { RuleResult } from "../../types/rules";
 import type { Transaction } from "../../types/transaction";
+import type { PolicySnapshot } from "../../types/policies";
 
 export const STORAGE_VERSION = 1 as const;
 export const STORAGE_KEY = "hisaab-kitaab:v1";
@@ -45,6 +46,7 @@ export interface PersistedBatch {
   batchId: string;
   createdAt: string;
   batchSummary?: BatchSummary;
+  policySnapshot?: PolicySnapshot;
   transactions: Transaction[];
   ruleResults: Record<string, RuleResult[]>;
   duplicateMatches: Record<string, DuplicateMatch[]>;
@@ -62,6 +64,7 @@ export interface AnalyzedBatchInput {
   batchId: string;
   createdAt: string;
   batchSummary?: BatchSummary;
+  policySnapshot?: PolicySnapshot;
   transactions: Transaction[];
   ruleResults: Record<string, RuleResult[]>;
   duplicateMatches: Record<string, DuplicateMatch[]>;
@@ -99,6 +102,7 @@ export interface BatchMetadata {
   batchId: string;
   createdAt: string;
   batchSummary?: BatchSummary;
+  policySnapshot?: PolicySnapshot;
 }
 
 export interface PersistenceAdapter {

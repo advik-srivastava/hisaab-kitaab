@@ -23,7 +23,7 @@ const passRule: RuleResult = { ...storedRule, status: "PASS" };
 describe("async normalized persistence", () => {
   it("defines the IndexedDB database and normalized stores", () => {
     expect(DATABASE_NAME).toBe("hisaab-kitaab");
-    expect(DATABASE_VERSION).toBe(2);
+    expect(DATABASE_VERSION).toBe(3);
     expect(Object.values(OBJECT_STORES)).toEqual([
       "batches",
       "transactions",
@@ -32,6 +32,8 @@ describe("async normalized persistence", () => {
       "decisions",
       "reviewState",
       "auditEvents",
+      "policies",
+      "settings",
     ]);
   });
 

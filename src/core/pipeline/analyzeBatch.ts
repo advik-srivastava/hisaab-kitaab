@@ -7,6 +7,8 @@ import { ingestFiles } from "../ingestion";
 import { evaluateRules } from "../rules";
 import type { Decision } from "../../types/decisions";
 import type { RuleResult } from "../../types/rules";
+import { defaultFinancePolicy } from "../../config/defaultPolicy";
+import { toPolicySnapshot } from "../../types/policies";
 import { associateDuplicateMatches } from "./associations";
 import { calculateBatchSummary } from "./summary";
 import type { AnalyzeBatchOptions, BatchAnalysisResult } from "./types";
@@ -25,6 +27,7 @@ export async function analyzeBatch(
     total: ingestion.transactions.length,
   });
   const now = options.now ?? (() => new Date());
+  const policy = options.policy ?? defaultFinancePolicy;
   const createdAt = ingestion.transactions[0]?.createdAt ?? now().toISOString();
   const ruleResults: Record<string, RuleResult[]> = {};
 
@@ -37,6 +40,7 @@ export async function analyzeBatch(
   for (const transaction of ingestion.transactions) {
     ruleResults[transaction.id] = evaluateRules(transaction, {
       referenceDate: options.referenceDate,
+      policy,
     });
   }
   const rulesMs = performance.now() - rulesStarted;
@@ -88,6 +92,7 @@ export async function analyzeBatch(
     duplicateMatches,
     decisions,
     batchSummary,
+    policySnapshot: toPolicySnapshot(policy),
     fileErrors: ingestion.fileErrors,
     filesProcessed: ingestion.filesProcessed,
     rowsProcessed: ingestion.rowsProcessed,

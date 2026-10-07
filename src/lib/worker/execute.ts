@@ -12,6 +12,7 @@ export async function executeProcessBatchRequest(
     const nowIso = request.options.nowIso;
     const result = await analyzeBatch(request.files, {
       referenceDate: request.options.referenceDate,
+      policy: request.options.policy,
       now: nowIso
         ? () => new Date(nowIso)
         : undefined,

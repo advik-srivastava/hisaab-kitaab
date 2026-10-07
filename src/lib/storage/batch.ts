@@ -149,7 +149,7 @@ export async function getCurrentBatchMetadata(
   if (target && !isPersistenceAdapter(target)) {
     const batch = loadState(target).currentBatch;
     return batch
-      ? { batchId: batch.batchId, createdAt: batch.createdAt, batchSummary: batch.batchSummary }
+      ? { batchId: batch.batchId, createdAt: batch.createdAt, batchSummary: batch.batchSummary, policySnapshot: batch.policySnapshot }
       : undefined;
   }
   return adapterFor(target)?.getCurrentBatchMetadata();

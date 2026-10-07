@@ -10,10 +10,17 @@ import {
   type BatchMetadata,
   type ExceptionsPageResult,
 } from "@/lib/storage";
+import { ServerExceptionQueue } from "@/components/ServerExceptionQueue";
 
 type FilterType = "All" | "HIGH_RISK" | "REVIEW";
 
 export default function ExceptionsPage() {
+  return process.env.NEXT_PUBLIC_APP_MODE === "SERVER"
+    ? <ServerExceptionQueue />
+    : <LocalExceptionsPage />;
+}
+
+function LocalExceptionsPage() {
   const [metadata, setMetadata] = useState<BatchMetadata | null>();
   const [result, setResult] = useState<ExceptionsPageResult>();
   const [filter, setFilter] = useState<FilterType>("All");

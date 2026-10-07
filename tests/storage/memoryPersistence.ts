@@ -90,7 +90,7 @@ export class MemoryPersistence implements PersistenceAdapter {
 
   async saveAnalyzedBatch(batch: PersistedBatch): Promise<StorageWriteResult> {
     await this.clear();
-    this.metadata = { batchId: batch.batchId, createdAt: batch.createdAt, batchSummary: batch.batchSummary };
+    this.metadata = { batchId: batch.batchId, createdAt: batch.createdAt, batchSummary: batch.batchSummary, policySnapshot: batch.policySnapshot };
     for (const transaction of batch.transactions) {
       this.transactions.set(transaction.id, transaction);
       this.rules.set(transaction.id, (batch.ruleResults[transaction.id] ?? []).filter(({ status }) => status === "FAIL"));

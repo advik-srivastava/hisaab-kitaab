@@ -146,6 +146,7 @@ export async function processBatchInWorker(
     options: {
       referenceDate: referenceDateValue(options.referenceDate),
       nowIso: options.now?.().toISOString(),
+      policy: options.policy,
     },
   };
   const analysis = await runWorkerAnalysis(worker, request, onProgress);

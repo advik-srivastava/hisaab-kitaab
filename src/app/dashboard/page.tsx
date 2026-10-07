@@ -6,8 +6,13 @@ import { MetricCard } from "@/components/MetricCard";
 import { StatusBadge } from "@/components/StatusBadge";
 import { loadStateAsync, type PersistedState } from "@/lib/storage";
 import { DecisionStatus } from "@/types/decisions";
+import { ServerDashboard } from "@/components/ServerDashboard";
 
 export default function DashboardPage() {
+  return process.env.NEXT_PUBLIC_APP_MODE === "SERVER" ? <ServerDashboard /> : <LocalDashboardPage />;
+}
+
+function LocalDashboardPage() {
   const [state, setState] = useState<PersistedState | null>(null);
 
   useEffect(() => {
@@ -89,6 +94,7 @@ export default function DashboardPage() {
         <p className="mt-2 text-base text-text-secondary">
           Overview of the latest analyzed batch.
         </p>
+        {batch.policySnapshot && <p className="mt-3 text-xs font-bold text-brand-primary">Policy: {batch.policySnapshot.policyName} v{batch.policySnapshot.version}</p>}
       </div>
 
       {/* Hero Analytics Section */}

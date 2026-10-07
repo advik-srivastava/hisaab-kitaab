@@ -1,5 +1,5 @@
-import policies from "../../config/policies.json";
 import type { RuleSeverity } from "../../types/rules";
+import type { FinancePolicy } from "../../types/policies";
 import type { Transaction } from "../../types/transaction";
 import {
   createRuleResult,
@@ -143,10 +143,11 @@ const dateNotFuture: RuleEvaluator = (transaction, context) => {
   );
 };
 
-const currencySupported: RuleEvaluator = (transaction) => {
+const currencySupported: RuleEvaluator = (transaction, context) => {
   const missing = isMissing(transaction.currency);
   const currency = missing ? undefined : transaction.currency!.trim().toUpperCase();
-  const failed = currency !== undefined && !policies.supportedCurrencies.includes(currency);
+  const currencies = context.policy.supportedCurrencies.map((value) => value.toUpperCase());
+  const failed = currency !== undefined && !currencies.includes(currency);
   return createRuleResult(
     "CURRENCY_SUPPORTED",
     "Supported currency",
@@ -154,11 +155,11 @@ const currencySupported: RuleEvaluator = (transaction) => {
     failed,
     {
       actualValue: currency ?? null,
-      expectedValue: policies.supportedCurrencies,
+      expectedValue: currencies,
       explanation: missing
         ? "Currency support was not evaluated because currency is missing."
         : failed
-          ? `Currency ${currency} is not supported; configured currencies: ${policies.supportedCurrencies.join(", ")}.`
+          ? `Currency ${currency} is not supported; configured currencies: ${currencies.join(", ")}.`
           : `Currency ${currency} is supported.`,
     },
   );
@@ -166,11 +167,11 @@ const currencySupported: RuleEvaluator = (transaction) => {
 
 function expenseLimitRule(
   ruleId: string,
-  category: keyof typeof policies.expenseLimits,
+  category: string,
   severity: RuleSeverity,
 ): RuleEvaluator {
-  return (transaction) => {
-    const limit = policies.expenseLimits[category];
+  return (transaction, context) => {
+    const limit = context.policy.expenseLimits[category];
     const applies = matchesCategory(transaction.expenseCategory, category);
     const amountExists = transaction.amount !== null && transaction.amount !== undefined;
     const failed = applies && amountExists && transaction.amount! > limit;
@@ -195,8 +196,8 @@ function expenseLimitRule(
   };
 }
 
-const purchaseOrderRequired: RuleEvaluator = (transaction) => {
-  const threshold = policies.purchaseOrderRequiredAbove;
+const purchaseOrderRequired: RuleEvaluator = (transaction, context) => {
+  const threshold = context.policy.purchaseOrderRequiredAbove;
   const amountExists = transaction.amount !== null && transaction.amount !== undefined;
   const aboveThreshold = amountExists && transaction.amount! > threshold;
   const failed = aboveThreshold && isMissing(transaction.purchaseOrder);
@@ -207,8 +208,8 @@ const purchaseOrderRequired: RuleEvaluator = (transaction) => {
     "HIGH",
     failed,
     {
-      actualValue: transaction.purchaseOrder ?? null,
-      expectedValue: `Purchase order is required above ${formatRupees(threshold)}`,
+      actualValue: amountExists ? transaction.amount : null,
+      expectedValue: threshold,
       explanation: !amountExists
         ? "Purchase-order requirement was not evaluated because the amount is missing."
         : failed
@@ -230,8 +231,19 @@ export const ruleEvaluators: readonly RuleEvaluator[] = [
   dateValid,
   dateNotFuture,
   currencySupported,
-  expenseLimitRule("LIMIT_MEALS", "Meals", "MEDIUM"),
-  expenseLimitRule("LIMIT_TAXI", "Taxi", "MEDIUM"),
-  expenseLimitRule("LIMIT_HOTEL", "Hotel", "HIGH"),
   purchaseOrderRequired,
 ];
+
+function expenseRuleId(category: string): string {
+  return `LIMIT_${category.trim().toUpperCase().replaceAll(/[^A-Z0-9]+/g, "_")}`;
+}
+
+export function createExpenseLimitEvaluators(
+  policy: FinancePolicy,
+): RuleEvaluator[] {
+  return Object.keys(policy.expenseLimits).map((category) => expenseLimitRule(
+    expenseRuleId(category),
+    category,
+    category.toLowerCase() === "hotel" ? "HIGH" : "MEDIUM",
+  ));
+}

@@ -163,6 +163,16 @@ describe("evaluateRules", () => {
     expect(rule(evaluate({ amount: 25000.01, purchaseOrder: " " }), "PO_REQUIRED")).toMatchObject({
       status: "FAIL",
       severity: "HIGH",
+      expectedValue: policies.purchaseOrderRequiredAbove,
+      actualValue: 25000.01,
+    });
+  });
+
+  it("uses the triggering transaction amount as PO-rule evidence", () => {
+    expect(rule(evaluate({ amount: 28300, purchaseOrder: undefined }), "PO_REQUIRED")).toMatchObject({
+      status: "FAIL",
+      expectedValue: 25000,
+      actualValue: 28300,
     });
   });
 
@@ -197,8 +207,8 @@ describe("evaluateRules", () => {
     expect(rule(results, "LIMIT_MEALS").expectedValue).toBe(policies.expenseLimits.Meals);
     expect(rule(results, "LIMIT_TAXI").expectedValue).toBe(policies.expenseLimits.Taxi);
     expect(rule(results, "LIMIT_HOTEL").expectedValue).toBe(policies.expenseLimits.Hotel);
-    expect(rule(results, "PO_REQUIRED").expectedValue).toContain(
-      policies.purchaseOrderRequiredAbove.toLocaleString("en-IN"),
+    expect(rule(results, "PO_REQUIRED").expectedValue).toBe(
+      policies.purchaseOrderRequiredAbove,
     );
   });
 
