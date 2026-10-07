@@ -78,6 +78,20 @@ describe("review actions", () => {
     expect(Number.isNaN(Date.parse(result!.auditEvent.timestamp))).toBe(false);
   });
 
+  it("creates distinct audit event IDs for actions recorded at the same time", () => {
+    const storage = preparedStorage();
+    const first = applyReviewAction(
+      { transactionId: "TXN-001", action: "APPROVE", reviewer: "Asha" },
+      { storage, now: () => firstReviewTime },
+    );
+    const second = applyReviewAction(
+      { transactionId: "TXN-001", action: "REJECT", reviewer: "Asha" },
+      { storage, now: () => firstReviewTime },
+    );
+
+    expect(first?.auditEvent.id).not.toBe(second?.auditEvent.id);
+  });
+
   it("records the correct transaction and batch IDs", () => {
     const storage = preparedStorage();
     const result = applyReviewAction(
@@ -123,6 +137,7 @@ describe("review actions", () => {
     ).toBeUndefined();
     expect(loadState(storage)).toEqual(before);
   });
+
 });
 
 describe("review evidence immutability", () => {

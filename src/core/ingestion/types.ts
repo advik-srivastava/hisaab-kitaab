@@ -2,6 +2,7 @@ import type { Transaction } from "../../types/transaction";
 
 export type IngestionErrorCode =
   | "UNSUPPORTED_EXTENSION"
+  | "FILE_TOO_LARGE"
   | "EMPTY_FILE"
   | "CORRUPT_XLSX"
   | "UNREADABLE_CONTENT";

@@ -2,6 +2,11 @@
 
 import { useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
+import {
+  isSupportedUploadFile,
+  MAX_UPLOAD_FILE_SIZE_BYTES,
+} from "@/config/uploads";
+import type { IngestionFileError } from "@/core/ingestion";
 import type { ProcessingStage } from "@/core/pipeline";
 import { processBatchInWorker } from "@/lib/worker";
 
@@ -22,27 +27,48 @@ export default function UploadPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [progressStage, setProgressStage] = useState<ProcessingStage>();
   const [error, setError] = useState<string | null>(null);
+  const [fileErrors, setFileErrors] = useState<IngestionFileError[]>([]);
+
+  const addFiles = useCallback((selectedFiles: File[]) => {
+    const unsupported = selectedFiles.filter((file) => !isSupportedUploadFile(file.name));
+    const oversized = selectedFiles.filter((file) => file.size > MAX_UPLOAD_FILE_SIZE_BYTES);
+    const validFiles = selectedFiles.filter(
+      (file) => isSupportedUploadFile(file.name) && file.size <= MAX_UPLOAD_FILE_SIZE_BYTES,
+    );
+    const selectedKeys = new Set(
+      files.map((file) => `${file.name}:${file.size}:${file.lastModified}`),
+    );
+    const uniqueFiles = validFiles.filter((file) => {
+      const key = `${file.name}:${file.size}:${file.lastModified}`;
+      if (selectedKeys.has(key)) return false;
+      selectedKeys.add(key);
+      return true;
+    });
+    const duplicateCount = validFiles.length - uniqueFiles.length;
+    const issues = [
+      unsupported.length > 0 ? `${unsupported.length} unsupported file${unsupported.length === 1 ? " was" : "s were"} skipped.` : "",
+      oversized.length > 0 ? `${oversized.length} file${oversized.length === 1 ? " exceeds" : "s exceed"} the 50 MB limit.` : "",
+      duplicateCount > 0 ? `${duplicateCount} duplicate file${duplicateCount === 1 ? " was" : "s were"} already selected.` : "",
+    ].filter(Boolean);
+
+    if (uniqueFiles.length > 0) {
+      setFiles((previous) => [...previous, ...uniqueFiles]);
+    }
+    setFileErrors([]);
+    setError(issues.length > 0 ? issues.join(" ") : null);
+  }, [files]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      const selectedFiles = Array.from(e.target.files).filter((f) => {
-        const name = f.name.toLowerCase();
-        return name.endsWith(".csv") || name.endsWith(".xlsx");
-      });
-      setFiles((prev) => [...prev, ...selectedFiles]);
-      setError(null);
+      addFiles(Array.from(e.target.files));
+      e.target.value = "";
     }
   };
 
   const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    const droppedFiles = Array.from(e.dataTransfer.files).filter((f) => {
-      const name = f.name.toLowerCase();
-      return name.endsWith(".csv") || name.endsWith(".xlsx");
-    });
-    setFiles((prev) => [...prev, ...droppedFiles]);
-    setError(null);
-  }, []);
+    addFiles(Array.from(e.dataTransfer.files));
+  }, [addFiles]);
 
   const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -58,11 +84,13 @@ export default function UploadPage() {
     setIsProcessing(true);
     setProgressStage(undefined);
     setError(null);
+    setFileErrors([]);
 
     try {
       const result = await processBatchInWorker(files, {}, ({ stage }) => {
         setProgressStage(stage);
       });
+      setFileErrors(result.fileErrors);
       if (result.transactions.length > 0) {
         if (!result.persistence.success) {
           setError(result.persistence.error?.message ?? "Analysis completed, but the batch could not be saved.");
@@ -124,7 +152,9 @@ export default function UploadPage() {
               <div className="flex text-base leading-6 text-text-primary font-medium justify-center items-center gap-1">
                 <label
                   htmlFor="file-upload"
-                  className="relative cursor-pointer rounded-md font-bold text-brand-primary hover:text-brand-primary/80 focus-within:outline-none transition-colors"
+                className={`relative rounded-md font-bold text-brand-primary transition-colors ${
+                  isProcessing ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:text-brand-primary/80 focus-within:outline-none"
+                }`}
                 >
                   <span>Select a file</span>
                   <input
@@ -135,6 +165,7 @@ export default function UploadPage() {
                     accept=".csv,.xlsx"
                     className="sr-only"
                     onChange={handleFileChange}
+                    disabled={isProcessing}
                   />
                 </label>
                 <p>or drag and drop it here</p>
@@ -200,8 +231,23 @@ export default function UploadPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
               <div>
-                <p className="font-bold">{error.includes("successfully") ? "Partial Processing Complete" : "Processing Failed"}</p>
+                <p className="font-bold">
+                  {error.includes("successfully")
+                    ? "Partial Processing Complete"
+                    : error.includes("skipped") || error.includes("limit") || error.includes("already selected")
+                      ? "File selection updated"
+                      : "Processing Failed"}
+                </p>
                 <p className="mt-1 opacity-90 leading-relaxed">{error}</p>
+                {fileErrors.length > 0 && (
+                  <ul className="mt-3 list-disc space-y-1 pl-5 text-xs font-medium opacity-90">
+                    {fileErrors.map((fileError, index) => (
+                      <li key={`${fileError.fileName}-${fileError.code}-${index}`}>
+                        {fileError.fileName}: {fileError.message}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             </div>
             {error.includes("successfully") && (

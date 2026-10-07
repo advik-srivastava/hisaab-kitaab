@@ -1,16 +1,18 @@
 import type { Metadata } from "next";
-import { Inter, Sora } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { AppShell } from "@/components/AppShell";
 
-const inter = Inter({
+const inter = localFont({
+  src: "../../public/fonts/inter-latin.woff2",
   variable: "--font-inter",
-  subsets: ["latin"],
+  weight: "100 900",
 });
 
-const sora = Sora({
+const sora = localFont({
+  src: "../../public/fonts/sora-latin.woff2",
   variable: "--font-sora",
-  subsets: ["latin"],
+  weight: "100 800",
 });
 
 export const metadata: Metadata = {

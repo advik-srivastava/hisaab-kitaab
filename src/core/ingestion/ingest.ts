@@ -1,5 +1,9 @@
 import * as XLSX from "xlsx";
 
+import {
+  isSupportedUploadFile,
+  MAX_UPLOAD_FILE_SIZE_BYTES,
+} from "../../config/uploads";
 import type { RawTransaction, Transaction } from "../../types/transaction";
 import { normalizeTransaction } from "../normalization";
 
@@ -90,12 +94,22 @@ async function readFile(file: File): Promise<
   | { error: IngestionFileError }
 > {
   const extension = file.name.split(".").pop()?.toLowerCase();
-  if (extension !== "csv" && extension !== "xlsx") {
+  if (!isSupportedUploadFile(file.name)) {
     return {
       error: fileError(
         file.name,
         "UNSUPPORTED_EXTENSION",
         "Only CSV and XLSX files are supported.",
+      ),
+    };
+  }
+
+  if (file.size > MAX_UPLOAD_FILE_SIZE_BYTES) {
+    return {
+      error: fileError(
+        file.name,
+        "FILE_TOO_LARGE",
+        "The file exceeds the 50 MB upload limit.",
       ),
     };
   }

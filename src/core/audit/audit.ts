@@ -32,6 +32,14 @@ export interface AppendAuditEventsResult {
   persistence: StorageWriteResult;
 }
 
+let auditIdSequence = 0;
+
+function auditIdSuffix(): string {
+  auditIdSequence += 1;
+  const random = globalThis.crypto?.randomUUID?.();
+  return random ?? `${Date.now()}-${auditIdSequence}`;
+}
+
 function invalidBatchResult(): AppendAuditEventsResult {
   return {
     events: [],
@@ -64,7 +72,7 @@ export function createAuditEventAtSequence(
 ): AuditEvent {
   const timestamp = now().toISOString();
   return {
-    id: `audit-${sequence}-${timestamp}`,
+    id: `audit-${sequence}-${timestamp}-${auditIdSuffix()}`,
     transactionId: input.transactionId,
     batchId: input.batchId,
     timestamp,

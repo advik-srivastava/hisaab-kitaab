@@ -417,21 +417,29 @@ export class IndexedDbPersistence implements PersistenceAdapter {
   }
 
   async saveReviewAction(batchId: string, transactionId: string, reviewAction: StoredReviewAction, auditEvent: AuditEvent): Promise<StorageWriteResult> {
-    const actions = [...(await this.getReviewActions(transactionId)), reviewAction];
-    const order = await this.getAuditEventCount(batchId);
-    const review: ReviewRecord = { transactionId, batchId, actions };
-    const audit: AuditRecord = { id: auditEvent.id, batchId, transactionId, order, event: auditEvent };
     const startedAt = performance.now();
     try {
       const database = await this.database();
       const transaction = database.transaction([OBJECT_STORES.reviewState, OBJECT_STORES.auditEvents], "readwrite");
       const done = transactionDone(transaction);
-      transaction.objectStore(OBJECT_STORES.reviewState).put(review);
-      transaction.objectStore(OBJECT_STORES.auditEvents).put(audit);
+      const reviews = transaction.objectStore(OBJECT_STORES.reviewState);
+      const audits = transaction.objectStore(OBJECT_STORES.auditEvents);
+      const existingReview = await requestResult(
+        reviews.get(transactionId) as IDBRequest<ReviewRecord | undefined>,
+      );
+      const order = await requestResult(audits.index("batchId").count(batchId));
+      const review: ReviewRecord = {
+        transactionId,
+        batchId,
+        actions: [...(existingReview?.actions ?? []), reviewAction],
+      };
+      const audit: AuditRecord = { id: auditEvent.id, batchId, transactionId, order, event: auditEvent };
+      reviews.put(review);
+      audits.put(audit);
       await done;
       return storageResult(true, startedAt, [review, audit]);
     } catch (error) {
-      return storageResult(false, startedAt, [review, audit], error);
+      return storageResult(false, startedAt, [reviewAction, auditEvent], error);
     }
   }
 

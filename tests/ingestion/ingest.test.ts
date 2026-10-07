@@ -38,6 +38,22 @@ function xlsxFile(
 }
 
 describe("file ingestion", () => {
+  it("rejects a file over the documented 50 MB limit before reading it", async () => {
+    const file = csvFile("invoice", "oversized.csv");
+    Object.defineProperty(file, "size", { value: 50 * 1024 * 1024 + 1 });
+
+    const result = await ingestFiles([file]);
+
+    expect(result).toMatchObject({ filesProcessed: 0, rowsProcessed: 0 });
+    expect(result.fileErrors).toEqual([
+      expect.objectContaining({
+        fileName: "oversized.csv",
+        code: "FILE_TOO_LARGE",
+        message: "The file exceeds the 50 MB upload limit.",
+      }),
+    ]);
+  });
+
   it("ingests a valid CSV using header aliases and normalized values", async () => {
     const result = await ingestFiles([
       csvFile(

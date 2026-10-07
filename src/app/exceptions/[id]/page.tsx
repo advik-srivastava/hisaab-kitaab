@@ -101,7 +101,10 @@ export default function ExceptionDetailPage() {
       });
 
       if (result?.persistence.success) {
-        setMessage({ text: "Decision recorded successfully.", type: "success" });
+        setMessage({
+          text: "Reviewer action recorded. The system finding and evidence remain available in the audit history.",
+          type: "success",
+        });
         setNote("");
         await loadData();
       } else {
@@ -137,6 +140,8 @@ export default function ExceptionDetailPage() {
 
   const failedRules = ruleResults.filter(r => r.status === "FAIL");
   const bestMatch = duplicateMatches[0];
+  const isException = decision.status !== "AUTO_PASS";
+  const hasDuplicateMatch = duplicateMatches.length > 0;
 
   return (
     <div className="space-y-8 relative z-10 pb-20">
@@ -365,8 +370,13 @@ export default function ExceptionDetailPage() {
             <h3 className="text-xl font-bold text-text-primary mb-6">
               Reviewer Decision
             </h3>
-            
-            <div className="mb-8">
+            {isException ? (
+              <>
+                <p className="text-sm text-text-secondary mb-6">
+                  Record the reviewer outcome. The original system finding remains intact for a complete audit trail.
+                </p>
+
+                <div className="mb-8">
               <label htmlFor="note" className="block text-sm font-bold text-text-secondary uppercase tracking-widest mb-3">
                 Audit Note (Optional)
               </label>
@@ -379,9 +389,9 @@ export default function ExceptionDetailPage() {
                 className="w-full rounded-xl bg-slate-50 border border-panel-border px-5 py-4 text-sm font-medium text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary transition-all shadow-sm"
                 disabled={isProcessing}
               />
-            </div>
+                </div>
 
-            <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex flex-col sm:flex-row gap-4">
               <button
                 onClick={() => handleAction("APPROVE")}
                 disabled={isProcessing}
@@ -396,14 +406,22 @@ export default function ExceptionDetailPage() {
               >
                 Reject
               </button>
-              <button
+              {hasDuplicateMatch && (
+                <button
                 onClick={() => handleAction("MARK_NOT_DUPLICATE")}
                 disabled={isProcessing}
                 className="sm:w-auto bg-white hover:bg-slate-50 focus:ring-2 focus:ring-text-muted focus:ring-offset-2 focus:ring-offset-panel disabled:opacity-50 text-text-primary border border-panel-border font-extrabold py-4 px-8 rounded-xl shadow-sm transition-all uppercase tracking-widest active:scale-95"
               >
                 Not Duplicate
-              </button>
-            </div>
+                </button>
+              )}
+                </div>
+              </>
+            ) : (
+              <p className="text-sm text-text-secondary">
+                This transaction was auto-cleared. No reviewer action is required.
+              </p>
+            )}
             
             {message && (
               <div className={`mt-6 p-4 rounded-xl text-sm font-bold flex items-center gap-3 ${message.type === "success" ? "bg-status-success-bg text-status-success-text border border-status-success-border shadow-[0_0_20px_rgba(16,185,129,0.1)]" : "bg-status-danger-bg text-status-danger-text border border-status-danger-border shadow-[0_0_20px_rgba(239,68,68,0.1)]"}`}>
